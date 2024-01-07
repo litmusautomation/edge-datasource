@@ -1,0 +1,28 @@
+{
+  "$schema": "https://raw.githubusercontent.com/grafana/grafana/main/docs/sources/developers/plugins/plugin.schema.json",
+  "type": "datasource",
+  "name": "Litmus Edge",
+  "id": "litmus-edge-datasource",
+  "metrics": true,
+  "backend": true,
+  "executable": "gpx_edge",
+  "info": {
+    "description": "The Litmus Edge data source plugin enables the visualization of real time data streaming from the edge in grafana",
+    "author": {
+      "name": "Litmus"
+    },
+    "keywords": ["datasource"],
+    "logos": {
+      "small": "img/logo.png",
+      "large": "img/logo.png"
+    },
+    "links": [],
+    "screenshots": [],
+    "version": "%VERSION%",
+    "updated": "%TODAY%"
+  },
+  "dependencies": {
+    "grafanaDependency": ">=10.0.3",
+    "plugins": []
+  }
+}
