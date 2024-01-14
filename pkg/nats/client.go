@@ -15,9 +15,8 @@ type Client interface {
 }
 
 type ConnectionOptions struct {
-	Host          string
-	Token         string
-	SkipTLSVerify bool
+	Host  string `json:"hostname"`
+	Token string `json:"token"`
 }
 
 type client struct {
@@ -26,13 +25,8 @@ type client struct {
 
 func NewClient(opts ConnectionOptions) (Client, error) {
 	url := fmt.Sprintf("nats://admin:%s@%s:4222", opts.Token, opts.Host)
-	natsOpts := []nats.Option{}
-
-	if opts.SkipTLSVerify {
-		natsOpts = append(natsOpts, nats.Secure(&tls.Config{InsecureSkipVerify: true}))
-	}
-
-	conn, err := nats.Connect(url, natsOpts...)
+	skipVerify := nats.Secure(&tls.Config{InsecureSkipVerify: true})
+	conn, err := nats.Connect(url, skipVerify)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +43,9 @@ func (c *client) Unsubscribe(topic string) error {
 }
 
 func (c *client) IsConnected() bool {
-	return false
+	return c.conn.IsConnected()
 }
 
-func (c *client) Dispose() {}
+func (c *client) Dispose() {
+	c.conn.Close()
+}

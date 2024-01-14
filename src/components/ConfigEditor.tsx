@@ -7,6 +7,18 @@ interface Props extends DataSourcePluginOptionsEditorProps<EdgeDataSourceOptions
 
 export function ConfigEditor(props: Props) {
   const { onOptionsChange, options } = props;
+  const { jsonData, secureJsonFields } = options;
+  const { hostname } = jsonData;
+  const secureJsonData = (options.secureJsonData || {}) as EdgeSecureJsonData;
+
+  const onHostChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const jsonData = {
+      ...options.jsonData,
+      hostname: event.target.value,
+    };
+    onOptionsChange({ ...options, jsonData });
+  };
+
   // Secure field (only sent to the backend)
   const onTokenChange = (event: ChangeEvent<HTMLInputElement>) => {
     onOptionsChange({
@@ -31,27 +43,19 @@ export function ConfigEditor(props: Props) {
     });
   };
 
-  const { jsonData, secureJsonFields } = options;
-  const secureJsonData = (options.secureJsonData || {}) as EdgeSecureJsonData;
-
   return (
     <div className="gf-form-group">
       <FieldSet label="Authentication">
         <InlineField
           label="Hostname"
           labelWidth={13}
-          interactive
           tooltip={() => {
-            return <p>Edge hostname to connect to</p>;
+            return <p>Edge Hostname to connect to</p>;
           }}
         >
-          <Input
-            value={jsonData.hostname || ''}
-            placeholder='e.g. "127.0.0.1"'
-            onReset={onResetToken}
-            onChange={onTokenChange}
-          />
+          <Input value={hostname} placeholder="127.0.0.1" onChange={onHostChange} />
         </InlineField>
+
         <InlineField
           label="Token"
           labelWidth={13}

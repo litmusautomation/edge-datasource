@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"math/rand"
 	"time"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/instancemgmt"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
+	edge "github.com/litmus/edge/pkg/nats"
 )
 
 // Make sure Datasource implements required interfaces. This is important to do
@@ -18,32 +18,63 @@ import (
 // backend.CheckHealthHandler interfaces. Plugin should not implement all these
 // interfaces - only those which are required for a particular task.
 var (
-	_ backend.QueryDataHandler      = (*Datasource)(nil)
-	_ backend.CheckHealthHandler    = (*Datasource)(nil)
-	_ instancemgmt.InstanceDisposer = (*Datasource)(nil)
+	_ backend.QueryDataHandler      = (*EdgeDatasource)(nil)
+	_ backend.CheckHealthHandler    = (*EdgeDatasource)(nil)
+	_ instancemgmt.InstanceDisposer = (*EdgeDatasource)(nil)
 )
 
-// NewDatasource creates a new datasource instance.
-func NewDatasource(_ context.Context, _ backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
-	return &Datasource{}, nil
+// NewEdgeInstance creates a new datasource instance.
+func NewEdgeInstance(_ context.Context, s backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
+	settings, err := getSettings(s)
+	if err != nil {
+		return nil, err
+	}
+
+	client, err := edge.NewClient(*settings)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewEdgeDatasource(client), nil
 }
 
-// Datasource is an example datasource which can respond to data queries, reports
-// its health and has streaming skills.
-type Datasource struct{}
+type EdgeDatasource struct {
+	Client edge.Client
+}
+
+func NewEdgeDatasource(client edge.Client) *EdgeDatasource {
+	return &EdgeDatasource{
+		Client: client,
+	}
+}
 
 // Dispose here tells plugin SDK that plugin wants to clean up resources when a new instance
 // created. As soon as datasource settings change detected by SDK old datasource instance will
 // be disposed and a new one will be created using NewSampleDatasource factory function.
-func (d *Datasource) Dispose() {
+func (d *EdgeDatasource) Dispose() {
 	// Clean up datasource instance resources.
+	d.Client.Dispose()
+}
+
+func getSettings(s backend.DataSourceInstanceSettings) (*edge.ConnectionOptions, error) {
+	opts := &edge.ConnectionOptions{}
+
+	if err := json.Unmarshal(s.JSONData, opts); err != nil {
+		return nil, fmt.Errorf("error reading settings: %w", err)
+	}
+
+	if token, ok := s.DecryptedSecureJSONData["token"]; ok {
+		opts.Token = token
+	}
+
+	return opts, nil
 }
 
 // QueryData handles multiple queries and returns multiple responses.
 // req contains the queries []DataQuery (where each query contains RefID as a unique identifier).
 // The QueryDataResponse contains a map of RefID to the response for each query, and each response
 // contains Frames ([]*Frame).
-func (d *Datasource) QueryData(ctx context.Context, req *backend.QueryDataRequest) (*backend.QueryDataResponse, error) {
+func (d *EdgeDatasource) QueryData(ctx context.Context, req *backend.QueryDataRequest) (*backend.QueryDataResponse, error) {
 	// create response struct
 	response := backend.NewQueryDataResponse()
 
@@ -61,7 +92,7 @@ func (d *Datasource) QueryData(ctx context.Context, req *backend.QueryDataReques
 
 type queryModel struct{}
 
-func (d *Datasource) query(_ context.Context, pCtx backend.PluginContext, query backend.DataQuery) backend.DataResponse {
+func (d *EdgeDatasource) query(_ context.Context, pCtx backend.PluginContext, query backend.DataQuery) backend.DataResponse {
 	var response backend.DataResponse
 
 	// Unmarshal the JSON into our queryModel.
@@ -87,23 +118,4 @@ func (d *Datasource) query(_ context.Context, pCtx backend.PluginContext, query 
 	response.Frames = append(response.Frames, frame)
 
 	return response
-}
-
-// CheckHealth handles health checks sent from Grafana to the plugin.
-// The main use case for these health checks is the test button on the
-// datasource configuration page which allows users to verify that
-// a datasource is working as expected.
-func (d *Datasource) CheckHealth(_ context.Context, req *backend.CheckHealthRequest) (*backend.CheckHealthResult, error) {
-	var status = backend.HealthStatusOk
-	var message = "Data source is working"
-
-	if rand.Int()%2 == 0 {
-		status = backend.HealthStatusError
-		message = "randomized error"
-	}
-
-	return &backend.CheckHealthResult{
-		Status:  status,
-		Message: message,
-	}, nil
 }
