@@ -1,14 +1,53 @@
-import { DataSourceInstanceSettings, CoreApp } from '@grafana/data';
-import { DataSourceWithBackend } from '@grafana/runtime';
+import {
+  DataSourceInstanceSettings,
+  CoreApp,
+  DataQueryRequest,
+  DataQueryResponse,
+  LiveChannelScope,
+} from '@grafana/data';
+import { DataSourceWithBackend, getGrafanaLiveSrv } from '@grafana/runtime';
 
 import { EdgeQuery, EdgeDataSourceOptions, DEFAULT_QUERY } from './types';
+import { Observable, merge } from 'rxjs';
+import { defaults } from 'lodash';
 
 export class DataSource extends DataSourceWithBackend<EdgeQuery, EdgeDataSourceOptions> {
   constructor(instanceSettings: DataSourceInstanceSettings<EdgeDataSourceOptions>) {
     super(instanceSettings);
   }
 
+  query(request: DataQueryRequest<EdgeQuery>): Observable<DataQueryResponse> {
+    if (request.targets[0].topic === undefined || request.targets[0].topic === '') {
+      console.log('Topic is required');
+      throw new Error('Topic is required');
+    }
+
+    const observables = request.targets.map((target) => {
+      const query = defaults(target, DEFAULT_QUERY);
+
+      return getGrafanaLiveSrv().getDataStream({
+        addr: {
+          scope: LiveChannelScope.DataSource,
+          namespace: this.uid,
+          path: `${request.interval}/${query.topic}`,
+          data: {
+            ...query,
+          },
+        },
+      });
+    });
+
+    return merge(...observables);
+  }
+
   getDefaultQuery(_: CoreApp): Partial<EdgeQuery> {
     return DEFAULT_QUERY;
+  }
+
+  filterQuery(query: EdgeQuery): boolean {
+    if (query.hide) {
+      return false;
+    }
+    return true;
   }
 }
