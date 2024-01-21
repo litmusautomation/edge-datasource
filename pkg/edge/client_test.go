@@ -1,4 +1,4 @@
-package nats
+package edge
 
 import (
 	"testing"
@@ -9,8 +9,8 @@ import (
 func TestNewClient(t *testing.T) {
 	// Prepare test data
 	opts := ConnectionOptions{
-		Token: "s3cr3t",
-		Host:  "127.0.0.1",
+		Token:    "s3cr3t",
+		Hostname: "127.0.0.1",
 	}
 
 	// Call the function
