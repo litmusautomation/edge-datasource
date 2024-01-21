@@ -24,7 +24,7 @@
     {
       "datasource": {
         "type": "litmus-edge-datasource",
-        "uid": "P8ABA625ADD8CC9D0"
+        "uid": "P1E81273D17965D71"
       },
       "fieldConfig": {
         "defaults": {
@@ -101,10 +101,10 @@
         {
           "datasource": {
             "type": "litmus-edge-datasource",
-            "uid": "P8ABA625ADD8CC9D0"
+            "uid": "P1E81273D17965D71"
           },
           "refId": "A",
-          "topic": ""
+          "topic": "test"
         }
       ],
       "title": "Panel Title",

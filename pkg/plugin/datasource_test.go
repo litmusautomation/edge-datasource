@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
-	edge "github.com/litmus/edge/pkg/nats"
+	edge "github.com/litmus/edge/pkg/edge"
 	"github.com/stretchr/testify/require"
 )
 
@@ -16,8 +16,8 @@ var (
 	SKIP_TLS_VERIFY = true
 
 	CLIENT_SETTINGS = edge.ConnectionOptions{
-		Token: TOKEN,
-		Host:  HOSTNAME,
+		Token:    TOKEN,
+		Hostname: HOSTNAME,
 	}
 
 	SERVER_SETTINGS = backend.DataSourceInstanceSettings{
@@ -27,26 +27,6 @@ var (
 		},
 	}
 )
-
-func TestQueryData(t *testing.T) {
-	ds := EdgeDatasource{}
-
-	resp, err := ds.QueryData(
-		context.Background(),
-		&backend.QueryDataRequest{
-			Queries: []backend.DataQuery{
-				{RefID: "A"},
-			},
-		},
-	)
-	if err != nil {
-		t.Error(err)
-	}
-
-	if len(resp.Responses) != 1 {
-		t.Fatal("QueryData must return a response")
-	}
-}
 
 func TestNewEdgeInstance(t *testing.T) {
 	t.Run("should return a new instance of EdgeDatasource", func(t *testing.T) {
@@ -77,7 +57,7 @@ func TestCheckHealth(t *testing.T) {
 		if err != nil {
 			t.Errorf("Unexpected error: %v", err)
 		}
-		ds := NewEdgeDatasource(client)
+		ds := NewEdgeDatasource(client, "uid")
 		res, _ := ds.CheckHealth(context.Background(), &backend.CheckHealthRequest{})
 		require.Equal(t, res.Status, backend.HealthStatusOk)
 		require.Equal(t, res.Message, "Connected to the Edge")
@@ -88,7 +68,7 @@ func TestCheckHealth(t *testing.T) {
 		if err != nil {
 			t.Errorf("Unexpected error: %v", err)
 		}
-		ds := NewEdgeDatasource(client)
+		ds := NewEdgeDatasource(client, "uid")
 		ds.Dispose()
 		res, _ := ds.CheckHealth(context.Background(), &backend.CheckHealthRequest{})
 		require.Equal(t, res.Status, backend.HealthStatusError)

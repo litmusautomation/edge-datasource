@@ -4,6 +4,7 @@
   "description": "The litmus Edge data source plugin enables the visualization of real time data streaming from the edge in Grafana",
   "scripts": {
     "build": "webpack -c ./.config/webpack/webpack.config.ts --env production",
+    "Build:backend": "mage -v build:linux",
     "dev": "webpack -w -c ./.config/webpack/webpack.config.ts --env development",
     "test": "jest --watch --onlyChanged",
     "test:ci": "jest --passWithNoTests --maxWorkers 4",
