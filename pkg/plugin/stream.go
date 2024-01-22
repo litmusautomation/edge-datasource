@@ -3,7 +3,6 @@ package plugin
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
@@ -35,20 +34,8 @@ func (ds *EdgeDatasource) RunStream(ctx context.Context, req *backend.RunStreamR
 	// * example: "1s/device.tag"
 	log.DefaultLogger.Debug("Starting Streaming", "path", req.Path)
 
-	// Split the path into chunks
-	chunks := strings.Split(req.Path, "/")
-	if len(chunks) != 2 {
-		return fmt.Errorf("invalid path: %s", req.Path)
-	}
-
-	// Parse the interval
-	interval, err := time.ParseDuration(chunks[0])
-	if err != nil {
-		return fmt.Errorf("failed to parse interval: %w", err)
-	}
-
 	// Subscribe to the topic
-	err = ds.Client.Subscribe(chunks[1], interval)
+	err := ds.Client.Subscribe(req.Path)
 	if err != nil {
 		return fmt.Errorf("failed to subscribe to topic: %w", err)
 	}
@@ -56,8 +43,8 @@ func (ds *EdgeDatasource) RunStream(ctx context.Context, req *backend.RunStreamR
 	// Unsubscribe from the topic when the context is canceled
 	defer ds.Client.Unsubscribe(req.Path)
 
-	// Create a ticker
-	ticker := time.NewTicker(interval)
+	// Create a ticker to send data frames at the specified interval
+	ticker := time.NewTicker(time.Second)
 
 	for {
 		select {

@@ -3,6 +3,7 @@ package edge
 import (
 	"crypto/tls"
 	"fmt"
+	"path"
 	"regexp"
 	"strings"
 	"sync"
@@ -13,7 +14,7 @@ import (
 )
 
 type Client interface {
-	Subscribe(string, time.Duration) error
+	Subscribe(string) error
 	Unsubscribe(string)
 	GetTopic(string) (*Topic, bool)
 	IsConnected() bool
@@ -38,7 +39,7 @@ func NewClient(opts ConnectionOptions) (Client, error) {
 		return nil, err
 	}
 
-	log.DefaultLogger.Debug("Connected to NATS Topic", "hostname", opts.Hostname)
+	log.DefaultLogger.Debug("Connected to NATS", "hostname", opts.Hostname)
 	return &client{
 		conn: conn,
 		topicMap: &TopicMap{
@@ -48,19 +49,26 @@ func NewClient(opts ConnectionOptions) (Client, error) {
 	}, nil
 }
 
-func (c *client) Subscribe(topicPath string, interval time.Duration) error {
+func (c *client) Subscribe(reqPath string) error {
+	chunks := strings.Split(reqPath, "/")
+	if len(chunks) != 3 {
+		return fmt.Errorf("invalid topic path: %s", reqPath)
+	}
+
+	topicPath := chunks[2]
 	// Validate the topic
 	if err := c.validateTopic(topicPath); err != nil {
 		return fmt.Errorf("invalid topic: %w", err)
 	}
 
+	addrPrefix := path.Join(chunks[0], chunks[1])
 	topic := &Topic{
-		TopicPath: topicPath,
-		Interval:  interval,
+		TopicPath:  topicPath,
+		AddrPrefix: addrPrefix,
 	}
 
-	if t, ok := c.topicMap.Load(topicPath); ok {
-		return fmt.Errorf("topic already exists: %s", t.TopicPath)
+	if _, ok := c.topicMap.Load(reqPath); ok {
+		return fmt.Errorf("already subscribed to topic: [%s]", topicPath)
 	}
 
 	log.DefaultLogger.Debug("Subscribing to NATS Topic", "topic", topicPath)

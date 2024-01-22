@@ -10,22 +10,24 @@ import (
 )
 
 type Message struct {
-	Timestamp time.Time
-	Value     []byte
+	Timestamp time.Time `json:"timestamp"`
+	Value     []byte    `json:"value"`
 }
 
 type Topic struct {
-	TopicPath string
-	Interval  time.Duration
-	Messages  []Message
-	framer    *framer
+	TopicPath  string
+	AddrPrefix string
+	Messages   []Message
+	framer     *framer
 }
 
 // Key returns the key for the topic.
-// The key is a combination of the interval string and the path.
-// For example, if the path is "device.tag" and the interval is 1s, the key will be "1s/device.tag".
+// The key is a combination of ChannelPrefix and the Topic path
+// AddrPrefix is constructed using the dashboardUID and panelId
+// e.g. if the Topic is "device.tag" and the AddrPrefix is "X/Y"
+// the key is "X/Y/device.tag" which represents the live Channel Address.
 func (t *Topic) Key() string {
-	return path.Join(t.Interval.String(), t.TopicPath)
+	return path.Join(t.AddrPrefix, t.TopicPath)
 }
 
 // ToDataFrame converts the topic to a data frame.
@@ -46,6 +48,8 @@ type TopicMap struct {
 	sync.Map
 	subscriptions map[string]*nats.Subscription
 }
+
+// * Key represents the live Channel Address
 
 // Load returns the topic for the given topic key
 func (tm *TopicMap) Load(key string) (*Topic, bool) {
@@ -88,15 +92,14 @@ func (tm *TopicMap) HasSubscription(topicPath string) bool {
 }
 
 // AddMessage adds a message to the topic for the given path
-func (tm *TopicMap) AddMessage(path string, msg Message) {
-	topic, _ := tm.Load(path)
-	if topic == nil {
-		topic = &Topic{
-			TopicPath: path,
+func (tm *TopicMap) AddMessage(topicPath string, msg Message) {
+	tm.Range(func(_ string, topic *Topic) bool {
+		if topic.TopicPath == topicPath {
+			topic.Messages = append(topic.Messages, msg)
+			return false
 		}
-		tm.Store(topic)
-	}
-	topic.Messages = append(topic.Messages, msg)
+		return true
+	})
 }
 
 func (tm *TopicMap) AddSubscription(topicPath string, sub *nats.Subscription) {
