@@ -2,6 +2,7 @@ package edge
 
 import (
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"path"
 	"regexp"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
+	"github.com/grafana/grafana-plugin-sdk-go/data"
 	"github.com/nats-io/nats.go"
 )
 
@@ -68,6 +70,7 @@ func (c *client) Subscribe(reqPath string) error {
 	}
 
 	if _, ok := c.topicMap.Load(reqPath); ok {
+		log.DefaultLogger.Info("Already subscribed to topic", "topic", topicPath)
 		return fmt.Errorf("already subscribed to topic: [%s]", topicPath)
 	}
 
@@ -134,13 +137,7 @@ func (c *client) Dispose() {
 
 func (c *client) MessageHandler(msg *nats.Msg) {
 	log.DefaultLogger.Debug("Received message", "topic", msg.Subject)
-
-	message := Message{
-		Timestamp: time.Now(),
-		Value:     msg.Data,
-	}
-
-	c.topicMap.AddMessage(msg.Subject, message)
+	c.topicMap.AddMessage(msg.Subject, c.MessageWrapper(msg))
 }
 
 // validateTopic validates the given topic string according to the following rules:
@@ -162,4 +159,82 @@ func (c *client) validateTopic(topic string) error {
 	}
 
 	return nil
+}
+
+// DH Tag Message type:
+type DHMessage struct {
+	Success     bool        `json:"success"`
+	Datatype    string      `json:"datatype"`
+	Timestamp   int64       `json:"timestamp"`
+	RegisterId  string      `json:"registerId"`
+	Value       interface{} `json:"value"`
+	DeviceId    string      `json:"deviceId"`
+	TagName     string      `json:"tagName"`
+	DeviceName  string      `json:"deviceName"`
+	Description string      `json:"description"`
+}
+
+// MessageWrapper is a wrapper for the NATS message
+func (c *client) MessageWrapper(msg *nats.Msg) Message {
+	var dhMessage DHMessage
+	err := json.Unmarshal(msg.Data, &dhMessage)
+	if err != nil {
+		return c.createMessageFromRawData(msg)
+	}
+
+	return c.createMessageFromDHMessage(msg, dhMessage)
+}
+
+func (c *client) createMessageFromRawData(msg *nats.Msg) Message {
+	fieldName := strings.Split(msg.Subject, ".")[len(strings.Split(msg.Subject, "."))-1]
+	timestamp := c.getTimestampFromMessageData(msg.Data)
+	labels := data.Labels{
+		"topic": msg.Subject,
+	}
+
+	return Message{
+		FieldName: fieldName,
+		Labels:    labels,
+		Timestamp: timestamp,
+		Value:     msg.Data,
+	}
+}
+
+func (c *client) getTimestampFromMessageData(data []byte) time.Time {
+	type hasTime struct {
+		Timestamp int64 `json:"timestamp"`
+	}
+	var v hasTime
+	err := json.Unmarshal(data, &v)
+	if err == nil {
+		return time.UnixMilli(v.Timestamp)
+	}
+	return time.Now()
+}
+
+func (c *client) createMessageFromDHMessage(msg *nats.Msg, dhMessage DHMessage) Message {
+	fieldName := dhMessage.TagName
+	timestamp := time.UnixMilli(dhMessage.Timestamp)
+	labels := data.Labels{
+		"topic":       msg.Subject,
+		"datatype":    dhMessage.Datatype,
+		"tagName":     dhMessage.TagName,
+		"deviceId":    dhMessage.DeviceId,
+		"deviceName":  dhMessage.DeviceName,
+		"description": dhMessage.Description,
+		"registerId":  dhMessage.RegisterId,
+	}
+
+	valueBytes, err := json.Marshal(dhMessage.Value)
+	if err != nil {
+		log.DefaultLogger.Warn("Failed to marshal value", "topic", msg.Subject)
+		return Message{}
+	}
+
+	return Message{
+		FieldName: fieldName,
+		Labels:    labels,
+		Timestamp: timestamp,
+		Value:     valueBytes,
+	}
 }

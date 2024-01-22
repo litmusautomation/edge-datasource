@@ -10,8 +10,10 @@ import (
 )
 
 type Message struct {
-	Timestamp time.Time `json:"timestamp"`
-	Value     []byte    `json:"value"`
+	FieldName string
+	Labels    data.Labels
+	Timestamp time.Time
+	Value     []byte
 }
 
 type Topic struct {

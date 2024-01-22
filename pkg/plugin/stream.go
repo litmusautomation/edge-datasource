@@ -28,17 +28,14 @@ func (ds *EdgeDatasource) PublishStream(context.Context, *backend.PublishStreamR
 }
 
 func (ds *EdgeDatasource) RunStream(ctx context.Context, req *backend.RunStreamRequest, sender *backend.StreamSender) error {
-	// * req.Path must be in the format of "interval/topic"
-	// * interval is the time between messages received from the frontend
-	// * topic is the topic name (NATS subject)
-	// * example: "1s/device.tag"
-	log.DefaultLogger.Debug("Starting Streaming", "path", req.Path)
-
 	// Subscribe to the topic
 	err := ds.Client.Subscribe(req.Path)
 	if err != nil {
+		log.DefaultLogger.Warn("Failed to subscribe to topic", "path", req.Path, "error", err)
 		return fmt.Errorf("failed to subscribe to topic: %w", err)
 	}
+
+	log.DefaultLogger.Info("Started Streaming", "path", req.Path)
 
 	// Unsubscribe from the topic when the context is canceled
 	defer ds.Client.Unsubscribe(req.Path)
@@ -49,21 +46,21 @@ func (ds *EdgeDatasource) RunStream(ctx context.Context, req *backend.RunStreamR
 	for {
 		select {
 		case <-ctx.Done():
-			log.DefaultLogger.Debug("Stopped Streaming (context canceled)", "path", req.Path, "err", ctx.Err())
+			log.DefaultLogger.Warn("Stopped Streaming (context canceled)", "path", req.Path, "err", ctx.Err())
 			ticker.Stop()
 			return nil
 		case <-ticker.C:
 			// Get the topic
 			topic, ok := ds.Client.GetTopic(req.Path)
 			if !ok {
-				log.DefaultLogger.Debug("Topic not found", "path", req.Path)
+				log.DefaultLogger.Warn("Topic not found", "path", req.Path)
 				break
 			}
 
 			// Convert the topic messages to a data frame
 			frame, err := topic.ToDataFrame()
 			if err != nil {
-				log.DefaultLogger.Debug("Failed to convert topic to data frame", "path", req.Path, "error", err)
+				log.DefaultLogger.Warn("Failed to convert topic to data frame", "path", req.Path, "error", err)
 				break
 			}
 
@@ -72,7 +69,7 @@ func (ds *EdgeDatasource) RunStream(ctx context.Context, req *backend.RunStreamR
 
 			// Send the frame
 			if err := sender.SendFrame(frame, data.IncludeAll); err != nil {
-				log.DefaultLogger.Debug("Failed to send the data frame", "path", req.Path, "error", err)
+				log.DefaultLogger.Warn("Failed to send the data frame", "path", req.Path, "error", err)
 			}
 		}
 	}

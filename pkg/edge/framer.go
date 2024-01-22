@@ -15,11 +15,13 @@ type framer struct {
 	iterator *jsoniter.Iterator
 	fields   []*data.Field
 	fieldMap map[string]int
+	Labels   data.Labels
 }
 
 func newFramer() *framer {
 	df := &framer{
 		fieldMap: make(map[string]int),
+		Labels:   make(data.Labels),
 	}
 	timeField := data.NewFieldFromFieldType(data.FieldTypeTime, 0)
 	timeField.Name = "Time"
@@ -32,7 +34,7 @@ func (df *framer) key() string {
 	if len(df.path) == 0 {
 		return "Value"
 	}
-	return strings.Join(df.path, "")
+	return strings.Join(df.path, "/")
 }
 
 func (df *framer) addValue(fieldType data.FieldType, v interface{}) {
@@ -44,8 +46,10 @@ func (df *framer) addValue(fieldType data.FieldType, v interface{}) {
 		df.fields[idx].Append(v)
 		return
 	}
+
 	field := data.NewFieldFromFieldType(fieldType, df.fields[0].Len())
 	field.Name = df.key()
+	field.Labels = df.Labels
 	field.Append(v)
 	df.fields = append(df.fields, field)
 	df.fieldMap[df.key()] = len(df.fields) - 1
@@ -93,6 +97,7 @@ func (df *framer) next() error {
 		return fmt.Errorf("invalid value")
 	}
 	df.path = []string{}
+	df.Labels = make(data.Labels)
 	return nil
 }
 
@@ -114,9 +119,11 @@ func (df *framer) toFrame(messages []Message) (*data.Frame, error) {
 
 	for _, message := range messages {
 		df.iterator = jsoniter.ParseBytes(jsoniter.ConfigDefault, message.Value)
+		df.path = append(df.path, message.FieldName)
+		df.Labels = message.Labels
 		err := df.next()
 		if err != nil {
-			log.DefaultLogger.Error("error parsing message", "error", err)
+			log.DefaultLogger.Error("error parsing message", "Field Name", message.FieldName, "error", err)
 			continue
 		}
 		df.fields[0].Append(message.Timestamp)
