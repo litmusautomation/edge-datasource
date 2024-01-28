@@ -31,7 +31,6 @@ func (ds *EdgeDatasource) RunStream(ctx context.Context, req *backend.RunStreamR
 	// Subscribe to the topic
 	err := ds.Client.Subscribe(req.Path)
 	if err != nil {
-		log.DefaultLogger.Warn("Failed to subscribe to topic", "path", req.Path, "error", err)
 		return fmt.Errorf("failed to subscribe to topic: %w", err)
 	}
 
@@ -41,6 +40,7 @@ func (ds *EdgeDatasource) RunStream(ctx context.Context, req *backend.RunStreamR
 	defer ds.Client.Unsubscribe(req.Path)
 
 	// Create a ticker to send data frames at the specified interval
+	// TODO: Make the interval configurable
 	ticker := time.NewTicker(time.Second)
 
 	for {

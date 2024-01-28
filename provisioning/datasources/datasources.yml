@@ -4,7 +4,11 @@ datasources:
   - name: 'Litmus Edge'
     type: 'litmus-edge-datasource'
     access: proxy
-    isDefault: false
+    isDefault: true
     orgId: 1
     version: 1
     editable: true
+    jsonData:
+      hostname: '10.88.111.7'
+    secureJsonData:
+      token: '09e41018-8c0b-47de-8fcb-ec144e3ed6f8'

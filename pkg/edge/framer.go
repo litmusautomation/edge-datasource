@@ -3,7 +3,7 @@ package edge
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
+	"path"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
@@ -15,13 +15,11 @@ type framer struct {
 	iterator *jsoniter.Iterator
 	fields   []*data.Field
 	fieldMap map[string]int
-	Labels   data.Labels
 }
 
 func newFramer() *framer {
 	df := &framer{
 		fieldMap: make(map[string]int),
-		Labels:   make(data.Labels),
 	}
 	timeField := data.NewFieldFromFieldType(data.FieldTypeTime, 0)
 	timeField.Name = "Time"
@@ -31,13 +29,14 @@ func newFramer() *framer {
 }
 
 func (df *framer) key() string {
-	if len(df.path) == 0 {
-		return "Value"
-	}
-	return strings.Join(df.path, "/")
+	return path.Join(df.path...)
 }
 
-func (df *framer) addValue(fieldType data.FieldType, v interface{}) {
+func (df *framer) addValue(fieldType data.FieldType, v interface{}, fName string, labels data.Labels) {
+	if (df.key() == "") && (fName == "") {
+		return
+	}
+
 	if idx, ok := df.fieldMap[df.key()]; ok {
 		if df.fields[idx].Type() != fieldType {
 			log.DefaultLogger.Debug("field type mismatch", "key", df.key(), "existing", df.fields[idx], "new", fieldType)
@@ -48,47 +47,52 @@ func (df *framer) addValue(fieldType data.FieldType, v interface{}) {
 	}
 
 	field := data.NewFieldFromFieldType(fieldType, df.fields[0].Len())
-	field.Name = df.key()
-	field.Labels = df.Labels
+	field.Name = path.Join(fName, df.key())
+	field.Labels = labels
 	field.Append(v)
 	df.fields = append(df.fields, field)
 	df.fieldMap[df.key()] = len(df.fields) - 1
 }
 
-func (df *framer) addNil() {
+func (df *framer) addNil(fieldName string) {
+
+	if (df.key() == "") && (fieldName == "") {
+		return
+	}
+
 	if idx, ok := df.fieldMap[df.key()]; ok {
 		df.fields[idx].Set(0, nil)
 		return
 	}
-	log.DefaultLogger.Debug("nil value for unknown field", "key", df.key())
+	log.DefaultLogger.Debug("nil value for unknown field", "key", df.key(), "fieldName", fieldName)
 }
 
-func (df *framer) next() error {
+func (df *framer) next(fieldName string, labels data.Labels) error {
 	switch df.iterator.WhatIsNext() {
 	case jsoniter.StringValue:
 		v := df.iterator.ReadString()
-		df.addValue(data.FieldTypeNullableString, &v)
+		df.addValue(data.FieldTypeNullableString, &v, fieldName, labels)
 	case jsoniter.NumberValue:
 		v := df.iterator.ReadFloat64()
-		df.addValue(data.FieldTypeNullableFloat64, &v)
+		df.addValue(data.FieldTypeNullableFloat64, &v, fieldName, labels)
 	case jsoniter.BoolValue:
 		v := df.iterator.ReadBool()
-		df.addValue(data.FieldTypeNullableBool, &v)
+		df.addValue(data.FieldTypeNullableBool, &v, fieldName, labels)
 	case jsoniter.NilValue:
-		df.addNil()
+		df.addNil(fieldName)
 		df.iterator.ReadNil()
 	case jsoniter.ArrayValue:
-		df.addValue(data.FieldTypeJSON, json.RawMessage(df.iterator.SkipAndReturnBytes()))
+		df.addValue(data.FieldTypeJSON, json.RawMessage(df.iterator.SkipAndReturnBytes()), fieldName, labels)
 	case jsoniter.ObjectValue:
 		size := len(df.path)
 		if size > 0 {
-			df.addValue(data.FieldTypeJSON, json.RawMessage(df.iterator.SkipAndReturnBytes()))
+			df.addValue(data.FieldTypeJSON, json.RawMessage(df.iterator.SkipAndReturnBytes()), fieldName, labels)
 			break
 		}
 		for fName := df.iterator.ReadObject(); fName != ""; fName = df.iterator.ReadObject() {
 			if size == 0 {
 				df.path = append(df.path, fName)
-				if err := df.next(); err != nil {
+				if err := df.next(fieldName, labels); err != nil {
 					return err
 				}
 			}
@@ -97,7 +101,6 @@ func (df *framer) next() error {
 		return fmt.Errorf("invalid value")
 	}
 	df.path = []string{}
-	df.Labels = make(data.Labels)
 	return nil
 }
 
@@ -119,9 +122,7 @@ func (df *framer) toFrame(messages []Message) (*data.Frame, error) {
 
 	for _, message := range messages {
 		df.iterator = jsoniter.ParseBytes(jsoniter.ConfigDefault, message.Value)
-		df.path = append(df.path, message.FieldName)
-		df.Labels = message.Labels
-		err := df.next()
+		err := df.next(message.FieldName, message.Labels)
 		if err != nil {
 			log.DefaultLogger.Error("error parsing message", "Field Name", message.FieldName, "error", err)
 			continue

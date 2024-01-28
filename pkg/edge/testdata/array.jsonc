@@ -1,0 +1,54 @@
+//  🌟 This was machine generated.  Do not edit. 🌟
+//  
+//  Frame[0] 
+//  Name: edge
+//  Dimensions: 2 Fields by 1 Rows
+//  +-------------------------------+-------------------------+
+//  | Name: Time                    | Name:                   |
+//  | Labels:                       | Labels:                 |
+//  | Type: []time.Time             | Type: []json.RawMessage |
+//  +-------------------------------+-------------------------+
+//  | 1969-12-31 19:00:00 -0500 EST | [1,2,3]                 |
+//  +-------------------------------+-------------------------+
+//  
+//  
+//  🌟 This was machine generated.  Do not edit. 🌟
+{
+  "status": 200,
+  "frames": [
+    {
+      "schema": {
+        "name": "edge",
+        "fields": [
+          {
+            "name": "Time",
+            "type": "time",
+            "typeInfo": {
+              "frame": "time.Time"
+            }
+          },
+          {
+            "type": "other",
+            "typeInfo": {
+              "frame": "json.RawMessage"
+            }
+          }
+        ]
+      },
+      "data": {
+        "values": [
+          [
+            0
+          ],
+          [
+            [
+              1,
+              2,
+              3
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}

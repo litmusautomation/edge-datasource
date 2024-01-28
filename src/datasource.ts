@@ -29,7 +29,7 @@ export class DataSource extends DataSourceWithBackend<EdgeQuery, EdgeDataSourceO
         addr: {
           scope: LiveChannelScope.DataSource,
           namespace: this.uid,
-          path: `${request.dashboardUID}/${request.panelId}/${query.topic}`,
+          path: `${request.dashboardUID}/${query.topic}`,
           data: {
             ...query,
           },

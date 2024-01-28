@@ -17,19 +17,19 @@ type Message struct {
 }
 
 type Topic struct {
-	TopicPath  string
-	AddrPrefix string
-	Messages   []Message
-	framer     *framer
+	TopicName     string
+	ChannelPrefix string
+	Messages      []Message
+	framer        *framer
 }
 
 // Key returns the key for the topic.
 // The key is a combination of ChannelPrefix and the Topic path
-// AddrPrefix is constructed using the dashboardUID and panelId
-// e.g. if the Topic is "device.tag" and the AddrPrefix is "X/Y"
-// the key is "X/Y/device.tag" which represents the live Channel Address.
+// ChannelPrefix is constructed using the dashboardUID
+// e.g. if the Topic is "device.tag" and the ChannelPrefix is "X"
+// the key is "X/device.tag" which represents the live Channel Address.
 func (t *Topic) Key() string {
-	return path.Join(t.AddrPrefix, t.TopicPath)
+	return path.Join(t.ChannelPrefix, t.TopicName)
 }
 
 // ToDataFrame converts the topic to a data frame.
@@ -41,17 +41,14 @@ func (t *Topic) ToDataFrame() (*data.Frame, error) {
 }
 
 // * * * TopicMap * * *
-// ? path is the stream identifier of the form "interval/topic"
-// ? interval is the time between messages received from the frontend
-// ? topicPath is the topic name (NATS subject)
-
 // TopicMap is a thread-safe map of topics
+// * The key is a combination of ChannelPrefix and the Topic name
+// * The value is a pointer to the topic
+// * subscriptions is a map of topic name and subscription pointer
 type TopicMap struct {
 	sync.Map
 	subscriptions map[string]*nats.Subscription
 }
-
-// * Key represents the live Channel Address
 
 // Load returns the topic for the given topic key
 func (tm *TopicMap) Load(key string) (*Topic, bool) {
@@ -80,11 +77,11 @@ func (tm *TopicMap) Range(f func(key string, topic *Topic) bool) {
 	})
 }
 
-// HasSubscription returns true if the topic map has a subscription for the given path
-func (tm *TopicMap) HasSubscription(topicPath string) bool {
+// HasSubscription returns true if the topic map has a subscription for the given topic name
+func (tm *TopicMap) HasSubscription(topicName string) bool {
 	hasSubscription := false
 	tm.Range(func(_ string, topic *Topic) bool {
-		if topic.TopicPath == topicPath {
+		if topic.TopicName == topicName {
 			hasSubscription = true
 			return false
 		}
@@ -94,9 +91,9 @@ func (tm *TopicMap) HasSubscription(topicPath string) bool {
 }
 
 // AddMessage adds a message to the topic for the given path
-func (tm *TopicMap) AddMessage(topicPath string, msg Message) {
+func (tm *TopicMap) AddMessage(topicName string, msg Message) {
 	tm.Range(func(_ string, topic *Topic) bool {
-		if topic.TopicPath == topicPath {
+		if topic.TopicName == topicName {
 			topic.Messages = append(topic.Messages, msg)
 			return false
 		}
@@ -104,14 +101,14 @@ func (tm *TopicMap) AddMessage(topicPath string, msg Message) {
 	})
 }
 
-func (tm *TopicMap) AddSubscription(topicPath string, sub *nats.Subscription) {
-	tm.subscriptions[topicPath] = sub
+func (tm *TopicMap) AddSubscription(topicName string, sub *nats.Subscription) {
+	tm.subscriptions[topicName] = sub
 }
 
-func (tm *TopicMap) RemoveSubscription(topicPath string) {
-	delete(tm.subscriptions, topicPath)
+func (tm *TopicMap) RemoveSubscription(topicName string) {
+	delete(tm.subscriptions, topicName)
 }
 
-func (tm *TopicMap) GetSubscription(topicPath string) *nats.Subscription {
-	return tm.subscriptions[topicPath]
+func (tm *TopicMap) GetSubscription(topicName string) *nats.Subscription {
+	return tm.subscriptions[topicName]
 }

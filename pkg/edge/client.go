@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"path"
 	"regexp"
 	"strings"
 	"sync"
@@ -41,7 +40,7 @@ func NewClient(opts ConnectionOptions) (Client, error) {
 		return nil, err
 	}
 
-	log.DefaultLogger.Debug("Connected to NATS", "hostname", opts.Hostname)
+	log.DefaultLogger.Info("Connected to NATS Server", "hostname", opts.Hostname)
 	return &client{
 		conn: conn,
 		topicMap: &TopicMap{
@@ -53,34 +52,33 @@ func NewClient(opts ConnectionOptions) (Client, error) {
 
 func (c *client) Subscribe(reqPath string) error {
 	chunks := strings.Split(reqPath, "/")
-	if len(chunks) != 3 {
+	if len(chunks) != 2 {
 		return fmt.Errorf("invalid topic path: %s", reqPath)
 	}
 
-	topicPath := chunks[2]
+	topicName := chunks[1]
 	// Validate the topic
-	if err := c.validateTopic(topicPath); err != nil {
+	if err := c.validateTopic(topicName); err != nil {
 		return fmt.Errorf("invalid topic: %w", err)
 	}
 
-	addrPrefix := path.Join(chunks[0], chunks[1])
+	addrPrefix := chunks[0]
 	topic := &Topic{
-		TopicPath:  topicPath,
-		AddrPrefix: addrPrefix,
+		TopicName:     topicName,
+		ChannelPrefix: addrPrefix,
 	}
 
 	if _, ok := c.topicMap.Load(reqPath); ok {
-		log.DefaultLogger.Info("Already subscribed to topic", "topic", topicPath)
-		return fmt.Errorf("already subscribed to topic: [%s]", topicPath)
+		return fmt.Errorf("already subscribed to topic: [%s]", topicName)
 	}
 
-	log.DefaultLogger.Debug("Subscribing to NATS Topic", "topic", topicPath)
-	sub, err := c.conn.Subscribe(topicPath, c.MessageHandler)
+	log.DefaultLogger.Debug("Subscribing to NATS Topic", "topic", topicName)
+	sub, err := c.conn.Subscribe(topicName, c.MessageHandler)
 	if err != nil {
 		return fmt.Errorf("failed to subscribe to NATS Topic: %w", err)
 	}
 
-	c.topicMap.AddSubscription(topicPath, sub)
+	c.topicMap.AddSubscription(topicName, sub)
 	c.topicMap.Store(topic)
 	return nil
 }
@@ -88,7 +86,7 @@ func (c *client) Subscribe(reqPath string) error {
 func (c *client) Unsubscribe(reqPath string) {
 	t, ok := c.GetTopic(reqPath)
 	if !ok {
-		log.DefaultLogger.Debug("Topic not found", "topic", reqPath)
+		log.DefaultLogger.Warn("Topic not found", "topic", reqPath)
 		return
 	}
 
@@ -96,15 +94,15 @@ func (c *client) Unsubscribe(reqPath string) {
 	c.topicMap.Delete(t.Key())
 
 	// Check if the topic still has subscriptions
-	// ? A Topic can be subscribed to by multiple streams (e.g. 1s/topic1, 5s/topic1)
-	// ? If the topic still has subscriptions, we don't want to unsubscribe from it
-	if exists := c.topicMap.HasSubscription(t.TopicPath); exists {
+	// ? A Topic can be subscribed to by multiple channels
+	// ? If the topic still has subscriptions, don't unsubscribe
+	if exists := c.topicMap.HasSubscription(t.TopicName); exists {
 		log.DefaultLogger.Debug("Topic still has subscriptions", "topic", reqPath)
 		return
 	}
 
 	// Get the subscription
-	sub := c.topicMap.GetSubscription(t.TopicPath)
+	sub := c.topicMap.GetSubscription(t.TopicName)
 	if sub == nil {
 		log.DefaultLogger.Debug("Subscription not found", "topic", reqPath)
 		return
@@ -118,7 +116,7 @@ func (c *client) Unsubscribe(reqPath string) {
 	}
 
 	// Remove the subscription
-	c.topicMap.RemoveSubscription(t.TopicPath)
+	c.topicMap.RemoveSubscription(t.TopicName)
 	log.DefaultLogger.Debug("Unsubscribed from NATS Topic", "topic", reqPath)
 }
 
@@ -186,15 +184,11 @@ func (c *client) MessageWrapper(msg *nats.Msg) Message {
 }
 
 func (c *client) createMessageFromRawData(msg *nats.Msg) Message {
-	fieldName := strings.Split(msg.Subject, ".")[len(strings.Split(msg.Subject, "."))-1]
 	timestamp := c.getTimestampFromMessageData(msg.Data)
-	labels := data.Labels{
-		"topic": msg.Subject,
-	}
 
 	return Message{
-		FieldName: fieldName,
-		Labels:    labels,
+		FieldName: msg.Subject,
+		Labels:    data.Labels{},
 		Timestamp: timestamp,
 		Value:     msg.Data,
 	}
@@ -209,25 +203,40 @@ func (c *client) getTimestampFromMessageData(data []byte) time.Time {
 	if err == nil {
 		return time.UnixMilli(v.Timestamp)
 	}
+
 	return time.Now()
 }
 
 func (c *client) createMessageFromDHMessage(msg *nats.Msg, dhMessage DHMessage) Message {
 	fieldName := dhMessage.TagName
 	timestamp := time.UnixMilli(dhMessage.Timestamp)
-	labels := data.Labels{
-		"topic":       msg.Subject,
-		"datatype":    dhMessage.Datatype,
-		"tagName":     dhMessage.TagName,
-		"deviceId":    dhMessage.DeviceId,
-		"deviceName":  dhMessage.DeviceName,
-		"description": dhMessage.Description,
-		"registerId":  dhMessage.RegisterId,
+	labels := make(data.Labels)
+
+	if msg.Subject != "" {
+		labels["topic"] = msg.Subject
+	}
+	if dhMessage.Datatype != "" {
+		labels["datatype"] = dhMessage.Datatype
+	}
+	if dhMessage.TagName != "" {
+		labels["tagName"] = dhMessage.TagName
+	}
+	if dhMessage.DeviceId != "" {
+		labels["deviceId"] = dhMessage.DeviceId
+	}
+	if dhMessage.DeviceName != "" {
+		labels["deviceName"] = dhMessage.DeviceName
+	}
+	if dhMessage.Description != "" {
+		labels["description"] = dhMessage.Description
+	}
+	if dhMessage.RegisterId != "" {
+		labels["registerId"] = dhMessage.RegisterId
 	}
 
 	valueBytes, err := json.Marshal(dhMessage.Value)
 	if err != nil {
-		log.DefaultLogger.Warn("Failed to marshal value", "topic", msg.Subject)
+		log.DefaultLogger.Error("Failed to marshal value", "topic", msg.Subject)
 		return Message{}
 	}
 
