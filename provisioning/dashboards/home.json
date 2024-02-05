@@ -104,7 +104,7 @@
             "uid": "P1E81273D17965D71"
           },
           "refId": "A",
-          "topic": "topic.test"
+          "topic": "devicehub.alias.state.585"
         }
       ],
       "title": "Panel Title",
@@ -119,13 +119,13 @@
     "list": []
   },
   "time": {
-    "from": "now-6h",
+    "from": "now-5m",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "",
   "title": "Litmus Edge",
   "uid": "f923249c-a6bd-4a37-9006-a2177a54bef8",
-  "version": 1,
+  "version": 2,
   "weekStart": ""
 }

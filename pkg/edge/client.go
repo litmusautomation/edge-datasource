@@ -50,25 +50,21 @@ func NewClient(opts ConnectionOptions) (Client, error) {
 	}, nil
 }
 
-func (c *client) Subscribe(reqPath string) error {
-	chunks := strings.Split(reqPath, "/")
-	if len(chunks) != 2 {
-		return fmt.Errorf("invalid topic path: %s", reqPath)
+func (c *client) Subscribe(topicName string) error {
+	if topicName == "" {
+		return fmt.Errorf("empty topic")
 	}
 
-	topicName := chunks[1]
 	// Validate the topic
 	if err := c.validateTopic(topicName); err != nil {
 		return fmt.Errorf("invalid topic: %w", err)
 	}
 
-	addrPrefix := chunks[0]
 	topic := &Topic{
-		TopicName:     topicName,
-		ChannelPrefix: addrPrefix,
+		TopicName: topicName,
 	}
 
-	if _, ok := c.topicMap.Load(reqPath); ok {
+	if _, ok := c.topicMap.Load(topicName); ok {
 		return fmt.Errorf("already subscribed to topic: [%s]", topicName)
 	}
 
@@ -83,45 +79,37 @@ func (c *client) Subscribe(reqPath string) error {
 	return nil
 }
 
-func (c *client) Unsubscribe(reqPath string) {
-	t, ok := c.GetTopic(reqPath)
+func (c *client) Unsubscribe(topicName string) {
+	t, ok := c.GetTopic(topicName)
 	if !ok {
-		log.DefaultLogger.Warn("Topic not found", "topic", reqPath)
-		return
-	}
-
-	// Delete the topic
-	c.topicMap.Delete(t.Key())
-
-	// Check if the topic still has subscriptions
-	// ? A Topic can be subscribed to by multiple channels
-	// ? If the topic still has subscriptions, don't unsubscribe
-	if exists := c.topicMap.HasSubscription(t.TopicName); exists {
-		log.DefaultLogger.Debug("Topic still has subscriptions", "topic", reqPath)
+		log.DefaultLogger.Warn("Topic not found", "topic", topicName)
 		return
 	}
 
 	// Get the subscription
 	sub := c.topicMap.GetSubscription(t.TopicName)
 	if sub == nil {
-		log.DefaultLogger.Debug("Subscription not found", "topic", reqPath)
+		log.DefaultLogger.Debug("Subscription not found", "topic", topicName)
 		return
 	}
 
 	// Unsubscribe from the topic
-	log.DefaultLogger.Debug("Unsubscribing from NATS Topic", "topic", reqPath)
+	log.DefaultLogger.Debug("Unsubscribing from NATS Topic", "topic", topicName)
 	if err := sub.Unsubscribe(); err != nil {
-		log.DefaultLogger.Debug("Failed to unsubscribe from NATS Topic", "topic", reqPath, "err", err)
+		log.DefaultLogger.Debug("Failed to unsubscribe from NATS Topic", "topic", topicName, "err", err)
 		return
 	}
 
+	// Delete the topic
+	c.topicMap.Delete(t.TopicName)
+
 	// Remove the subscription
 	c.topicMap.RemoveSubscription(t.TopicName)
-	log.DefaultLogger.Debug("Unsubscribed from NATS Topic", "topic", reqPath)
+	log.DefaultLogger.Debug("Unsubscribed from NATS Topic", "topic", topicName)
 }
 
-func (c *client) GetTopic(reqPath string) (*Topic, bool) {
-	return c.topicMap.Load(reqPath)
+func (c *client) GetTopic(topicName string) (*Topic, bool) {
+	return c.topicMap.Load(topicName)
 }
 
 func (c *client) IsConnected() bool {

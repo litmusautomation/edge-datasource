@@ -9,6 +9,6 @@ datasources:
     version: 1
     editable: true
     jsonData:
-      hostname: '10.88.111.7'
+      hostname: '10.17.11.205'
     secureJsonData:
-      token: '09e41018-8c0b-47de-8fcb-ec144e3ed6f8'
+      token: '8a30b050-4a63-405b-9bf3-6dba7a44dfc3'

@@ -18,7 +18,6 @@ export class DataSource extends DataSourceWithBackend<EdgeQuery, EdgeDataSourceO
 
   query(request: DataQueryRequest<EdgeQuery>): Observable<DataQueryResponse> {
     if (request.targets[0].topic === undefined || request.targets[0].topic === '') {
-      console.log('Topic is required');
       throw new Error('Topic is required');
     }
 
@@ -29,7 +28,7 @@ export class DataSource extends DataSourceWithBackend<EdgeQuery, EdgeDataSourceO
         addr: {
           scope: LiveChannelScope.DataSource,
           namespace: this.uid,
-          path: `${request.dashboardUID}/${query.topic}`,
+          path: query?.topic || '',
           data: {
             ...query,
           },

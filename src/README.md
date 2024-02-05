@@ -1,51 +1,33 @@
-<!-- This README file is going to be the one displayed on the Grafana.com website for your plugin. Uncomment and replace the content here before publishing.
+# Litmus Edge Datasource
 
-Remove any remaining comments before publishing as these may be displayed on Grafana.com -->
+The Litmus Edge data source plugin enables the visualization of real time data streaming from the edge in Grafana.
 
-# Edge
-
-The litmus edge data source plugin enables the visualization of real time data streaming from the edge in grafana
-
-<!-- To help maximize the impact of your README and improve usability for users, we propose the following loose structure:
-
-**BEFORE YOU BEGIN**
-- Ensure all links are absolute URLs so that they will work when the README is displayed within Grafana and Grafana.com
-- Be inspired ✨
-  - [grafana-polystat-panel](https://github.com/grafana/grafana-polystat-panel)
-  - [volkovlabs-variable-panel](https://github.com/volkovlabs/volkovlabs-variable-panel)
-
-**ADD SOME BADGES**
-
-Badges convey useful information at a glance for users whether in the Catalog or viewing the source code. You can use the generator on [Shields.io](https://shields.io/badges/dynamic-json-badge) together with the Grafana.com API
-to create dynamic badges that update automatically when you publish a new version to the marketplace.
-
-- For the logo field use 'grafana'.
-- Examples (label: query)
-  - Downloads: $.downloads
-  - Catalog Version: $.version
-  - Grafana Dependency: $.grafanaDependency
-  - Signature Type: $.versionSignatureType
-
-Full example: ![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?logo=grafana&query=$.version&url=https://grafana.com/api/plugins/grafana-polystat-panel&label=Marketplace&prefix=v&color=F47A20)
-
-Consider other [badges](https://shields.io/badges) as you feel appropriate for your project.
-
-## Overview / Introduction
-Provide one or more paragraphs as an introduction to your plugin to help users understand why they should use it.
-
-Consider including screenshots:
-- in [plugin.json](https://grafana.com/developers/plugin-tools/reference-plugin-json#info) include them as relative links.
-- in the README ensure they are absolute URLs.
+![Litmus Data Source](docs/le-datasource.gif)
 
 ## Requirements
-List any requirements or dependencies they may need to run the plugin.
 
-## Getting Started
-Provide a quick start on how to configure and use the plugin.
+- Grafana v8.0+
+- Litmus Edge v3.3.1+
+- [Litmus Edge API Account](https://docs.litmus.io/litmusedge/product-features/system/tokens/create-api-account)
 
-## Documentation
-If your project has dedicated documentation available for users, provide links here. For help in following Grafana's style recommendations for technical documentation, refer to our [Writer's Toolkit](https://grafana.com/docs/writers-toolkit/).
+## Configure the data source
 
-## Contributing
-Do you want folks to contribute to the plugin or provide feedback through specific means? If so, tell them how!
--->
+[Add a new data source](https://grafana.com/docs/grafana/latest/datasources/add-a-data-source/) and select Litmus Edge. To configure the data source, you need to provide the following fields:
+
+- **Hostname**: The hostname of the Litmus Edge instance.
+- **Token**: The [token](https://docs.litmus.io/litmusedge/product-features/system/tokens/create-api-account) to authenticate with the Litmus Edge instance.
+
+![Data Source Configuration](docs/le-datasource-config.png)
+
+## Stream data from the edge
+
+To stream data from the edge, you need to create a new query and provide the following fields:
+
+- **Topic**: The topic name to fetch the data from.
+
+![Query Configuration](docs/le-datasource-query.png)
+
+> - The plugin supports topics publishing numbers, strings, boolean, and JSON objects. Use the `Extract Fields` transformation to extract the fields from the JSON object.
+> - The plugin automatically adds the `timestamp` field to the query result if it is not present in the topic data.
+> - The plugin automatically adds the topic context for Devicehub tags.
+> - Wildcard topics are not allowed.

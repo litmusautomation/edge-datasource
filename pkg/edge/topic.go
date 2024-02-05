@@ -1,7 +1,6 @@
 package edge
 
 import (
-	"path"
 	"sync"
 	"time"
 
@@ -17,19 +16,9 @@ type Message struct {
 }
 
 type Topic struct {
-	TopicName     string
-	ChannelPrefix string
-	Messages      []Message
-	framer        *framer
-}
-
-// Key returns the key for the topic.
-// The key is a combination of ChannelPrefix and the Topic path
-// ChannelPrefix is constructed using the dashboardUID
-// e.g. if the Topic is "device.tag" and the ChannelPrefix is "X"
-// the key is "X/device.tag" which represents the live Channel Address.
-func (t *Topic) Key() string {
-	return path.Join(t.ChannelPrefix, t.TopicName)
+	TopicName string `json:"topic"`
+	Messages  []Message
+	framer    *framer
 }
 
 // ToDataFrame converts the topic to a data frame.
@@ -42,7 +31,7 @@ func (t *Topic) ToDataFrame() (*data.Frame, error) {
 
 // * * * TopicMap * * *
 // TopicMap is a thread-safe map of topics
-// * The key is a combination of ChannelPrefix and the Topic name
+// * The key is the Topic name
 // * The value is a pointer to the topic
 // * subscriptions is a map of topic name and subscription pointer
 type TopicMap struct {
@@ -61,7 +50,7 @@ func (tm *TopicMap) Load(key string) (*Topic, bool) {
 
 // Store stores the topic for the given topic key
 func (tm *TopicMap) Store(topic *Topic) {
-	tm.Map.Store(topic.Key(), topic)
+	tm.Map.Store(topic.TopicName, topic)
 }
 
 // Delete deletes the topic for the given topic key
@@ -75,19 +64,6 @@ func (tm *TopicMap) Range(f func(key string, topic *Topic) bool) {
 	tm.Map.Range(func(key, value interface{}) bool {
 		return f(key.(string), value.(*Topic))
 	})
-}
-
-// HasSubscription returns true if the topic map has a subscription for the given topic name
-func (tm *TopicMap) HasSubscription(topicName string) bool {
-	hasSubscription := false
-	tm.Range(func(_ string, topic *Topic) bool {
-		if topic.TopicName == topicName {
-			hasSubscription = true
-			return false
-		}
-		return true
-	})
-	return hasSubscription
 }
 
 // AddMessage adds a message to the topic for the given path
