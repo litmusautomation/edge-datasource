@@ -16,7 +16,7 @@
     "up": "docker-compose up --build -d",
     "down": "docker-compose down -v",
     "restart": "docker-compose restart",
-    "sign": "npx --yes @grafana/sign-plugin@latest"
+    "sign": "npx --yes @grafana/sign-plugin@latest --rootUrls http://localhost:3000"
   },
   "author": "Litmus",
   "license": "Apache-2.0",
