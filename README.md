@@ -7,8 +7,11 @@ The Litmus Edge data source plugin enables the visualization of real time data s
 ## Requirements
 
 - Grafana v8.0+
-- Litmus Edge v3.3.1+
-- [Litmus Edge API Account](https://docs.litmus.io/litmusedge/product-features/system/tokens/create-api-account)
+- Litmus Edge v3.16.x
+- [Litmus Edge API Account](https://docs.litmus.io/litmusedge/product-features/system/access-control/tokens/create-api-account)
+
+> [!NOTE]
+> Make sure [NATS proxy](https://docs.litmus.io/litmusedge/product-features/system/access-control/tokens/create-api-account) is enabled and has read access to the topics.
 
 ## Configure the data source
 
