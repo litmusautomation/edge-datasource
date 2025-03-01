@@ -34,11 +34,12 @@ jobs:
         with:
           version: latest
           args: buildAll
-
-      - name: Sign plugin
-        run: npm run sign
-        env:
-          GRAFANA_ACCESS_POLICY_TOKEN: ${{ secrets.GRAFANA_ACCESS_POLICY_TOKEN }}
+      # TODO: Enable automatic signing of the plugin
+      # Grafana team will assign a signature level to the plugin after it's approved!
+      # - name: Sign plugin
+      #   run: npm run sign
+      #   env:
+      #     GRAFANA_ACCESS_POLICY_TOKEN: ${{ secrets.GRAFANA_ACCESS_POLICY_TOKEN }}
 
       - name: Get plugin metadata
         id: metadata
