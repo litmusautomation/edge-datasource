@@ -2,7 +2,9 @@
 
 The Litmus Edge data source plugin enables the visualization of real time data streaming from the edge in Grafana.
 
-![Litmus Data Source](img/le-datasource.gif)
+https://github.com/user-attachments/assets/934e18e8-e89d-42eb-8455-75010db3d641
+
+![Litmus Data Source](https://github.com/litmusautomation/edge-datasource/raw/main/img/le-datasource.gif)
 
 ## Requirements
 
@@ -20,7 +22,7 @@ The Litmus Edge data source plugin enables the visualization of real time data s
 - **Hostname**: The hostname of the Litmus Edge instance.
 - **Token**: The [token](https://docs.litmus.io/litmusedge/product-features/system/tokens/create-api-account) to authenticate with the Litmus Edge instance.
 
-![Data Source Configuration](img/le-datasource-config.png)
+![Data Source Configuration](https://github.com/litmusautomation/edge-datasource/raw/main/img/le-datasource-config.png)
 
 ## Stream data from the edge
 
@@ -28,7 +30,7 @@ To stream data from the edge, you need to create a new query and provide the fol
 
 - **Topic**: The topic name to fetch the data from.
 
-![Query Configuration](img/le-datasource-query.png)
+![Query Configuration](https://github.com/litmusautomation/edge-datasource/raw/main/img/le-datasource-query.png)
 
 > - The plugin supports topics publishing numbers, strings, boolean, and JSON objects. Use the `Extract Fields` transformation to extract the fields from the JSON object.
 > - The plugin automatically adds the `timestamp` field to the query result if it is not present in the topic data.
