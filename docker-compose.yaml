@@ -13,6 +13,6 @@ services:
       - 3000:3000/tcp
     volumes:
       - ./dist:/var/lib/grafana/plugins/litmus-edge-datasource
-      # - ./provisioning:/etc/grafana/provisioning
+      - ./provisioning:/etc/grafana/provisioning
     # environment:
     #   - GF_LOG_LEVEL=warn
