@@ -2,7 +2,7 @@
 
 The Litmus Edge data source plugin enables the visualization of real time data streaming from the edge in Grafana.
 
-https://github.com/user-attachments/assets/934e18e8-e89d-42eb-8455-75010db3d641
+[Watch Demo](https://github.com/user-attachments/assets/934e18e8-e89d-42eb-8455-75010db3d641)
 
 ![Litmus Data Source](https://github.com/litmusautomation/edge-datasource/raw/main/img/le-datasource.gif)
 

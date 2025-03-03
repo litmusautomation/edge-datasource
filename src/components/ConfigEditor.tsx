@@ -3,34 +3,38 @@ import { FieldSet, InlineField, Input, SecretInput } from '@grafana/ui';
 import { DataSourcePluginOptionsEditorProps } from '@grafana/data';
 import { EdgeDataSourceOptions, EdgeSecureJsonData } from '../types';
 
-interface Props extends DataSourcePluginOptionsEditorProps<EdgeDataSourceOptions> {}
+interface Props extends DataSourcePluginOptionsEditorProps<EdgeDataSourceOptions> { }
 
-export function ConfigEditor(props: Props) {
+export function ConfigEditor ( props: Props )
+{
   const { onOptionsChange, options } = props;
   const { jsonData, secureJsonFields } = options;
   const { hostname } = jsonData;
-  const secureJsonData = (options.secureJsonData || {}) as EdgeSecureJsonData;
+  const secureJsonData = ( options.secureJsonData || {} ) as EdgeSecureJsonData;
 
-  const onHostChange = (event: ChangeEvent<HTMLInputElement>) => {
+  const onHostChange = ( event: ChangeEvent<HTMLInputElement> ) =>
+  {
     const jsonData = {
       ...options.jsonData,
       hostname: event.target.value,
     };
-    onOptionsChange({ ...options, jsonData });
+    onOptionsChange( { ...options, jsonData } );
   };
 
   // Secure field (only sent to the backend)
-  const onTokenChange = (event: ChangeEvent<HTMLInputElement>) => {
-    onOptionsChange({
+  const onTokenChange = ( event: ChangeEvent<HTMLInputElement> ) =>
+  {
+    onOptionsChange( {
       ...options,
       secureJsonData: {
         token: event.target.value,
       },
-    });
+    } );
   };
 
-  const onResetToken = () => {
-    onOptionsChange({
+  const onResetToken = () =>
+  {
+    onOptionsChange( {
       ...options,
       secureJsonFields: {
         ...options.secureJsonFields,
@@ -40,7 +44,7 @@ export function ConfigEditor(props: Props) {
         ...options.secureJsonData,
         token: '',
       },
-    });
+    } );
   };
 
   return (
@@ -49,7 +53,8 @@ export function ConfigEditor(props: Props) {
         <InlineField
           label="Hostname"
           labelWidth={13}
-          tooltip={() => {
+          tooltip={() =>
+          {
             return <p>Edge Hostname to connect to</p>;
           }}
         >
@@ -60,7 +65,8 @@ export function ConfigEditor(props: Props) {
           label="Token"
           labelWidth={13}
           interactive
-          tooltip={() => {
+          tooltip={() =>
+          {
             return (
               <>
                 <p>
@@ -69,7 +75,7 @@ export function ConfigEditor(props: Props) {
                     <a
                       target="_blank"
                       rel="noreferrer"
-                      href="https://docs.litmus.io/litmusedge/product-features/system/tokens/create-api-account"
+                      href="https://docs.litmus.io/litmusedge/product-features/system/access-control/tokens/create-api-account"
                     >
                       Tokens
                     </a>
@@ -81,7 +87,7 @@ export function ConfigEditor(props: Props) {
           }}
         >
           <SecretInput
-            isConfigured={(secureJsonFields && secureJsonFields.token) as boolean}
+            isConfigured={( secureJsonFields && secureJsonFields.token ) as boolean}
             value={secureJsonData.token || ''}
             placeholder="auth token"
             onReset={onResetToken}

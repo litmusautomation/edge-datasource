@@ -15,13 +15,44 @@
       "name": "Litmus Automation"
     },
     "keywords": [
-      "datasource"
+      "datasource",
+      "litmus edge",
+      "edge",
+      "real time",
+      "streaming"
+    ],
+    "screenshots": [
+      {
+        "name": "Litmus Edge Data Source",
+        "path": "img/le-datasource.gif"
+      },
+      {
+        "name": "Litmus Edge Data Source Configuration",
+        "path": "img/le-datasource-config.png"
+      },
+      {
+        "name": "Litmus Edge Data Source Query",
+        "path": "img/le-datasource-query.png"
+      }
     ],
     "logos": {
       "small": "img/logo.svg",
       "large": "img/logo.svg"
     },
-    "links": [],
+    "links": [
+      {
+        "name": "Watch Demo",
+        "url": "https://github.com/user-attachments/assets/934e18e8-e89d-42eb-8455-75010db3d641"
+      },
+      {
+        "name": "Litmus",
+        "url": "https://litmus.io"
+      },
+      {
+        "name": "Litmus Edge API Account",
+        "url": "https://docs.litmus.io/litmusedge/product-features/system/access-control/tokens/create-api-account"
+      }
+    ],
     "version": "%VERSION%",
     "updated": "%TODAY%"
   },
