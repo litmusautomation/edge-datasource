@@ -39,7 +39,7 @@ To stream data from the edge, you need to create a new query and provide the fol
 
 ## Development
 
-Prerequisites: **Node.js 20+**, **Go** (see `go.mod`), **Docker** with Compose v2, and [**Mage**](https://magefile.org/) (`go install github.com/magefile/mage@latest`). The stack follows [Grafana Plugin Tools](https://grafana.com/developers/plugin-tools).
+Prerequisites: **Node.js 22+**, **Go** (see `go.mod`), **Docker** with Compose v2, and [**Mage**](https://magefile.org/) (`go install github.com/magefile/mage@latest`). The stack follows [Grafana Plugin Tools](https://grafana.com/developers/plugin-tools).
 
 1. **Install** — `npm install`
 2. **Environment** — `cp .env.example .env` and set `LITMUS_EDGE_HOSTNAME` and `LITMUS_EDGE_TOKEN` so the provisioned datasource can reach Litmus Edge when using Docker.
@@ -47,4 +47,4 @@ Prerequisites: **Node.js 20+**, **Go** (see `go.mod`), **Docker** with Compose v
 4. **Run Grafana** — `npm run server` (or `npm run up` for detached). The dev image mounts `dist/` and `provisioning/`; use OSS with `GRAFANA_IMAGE=grafana-oss` if you prefer.
 5. **Watch frontend** — in another terminal, `npm run dev` while Grafana is running for live reload of the plugin UI.
 
-Checks before a PR: `npm run typecheck`, `npm run lint`, `npm run test:ci`. End-to-end: start Grafana, then `npm run e2e:install` once and `npm run e2e`.
+Checks before a PR: `npm run typecheck`, `npm run lint`, `npm run test:ci`. End-to-end (local, with Litmus Edge reachable via `.env`): start Grafana, then `npm run e2e:install` once and `npm run e2e`.

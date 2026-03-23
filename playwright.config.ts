@@ -1,11 +1,10 @@
-import path from 'node:path';
-import { createRequire } from 'node:module';
+import type { PluginOptions } from '@grafana/plugin-e2e';
 import { defineConfig, devices } from '@playwright/test';
+import { dirname } from 'path';
 
-const require = createRequire(import.meta.url);
-const pluginE2eAuth = path.join(path.dirname(require.resolve('@grafana/plugin-e2e')), 'auth');
+const pluginE2eAuth = `${dirname(require.resolve('@grafana/plugin-e2e'))}/auth`;
 
-export default defineConfig({
+export default defineConfig<PluginOptions>({
   testDir: './tests',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
@@ -23,7 +22,7 @@ export default defineConfig({
       testMatch: [/.*\.js/],
     },
     {
-      name: 'run-tests',
+      name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
         storageState: 'playwright/.auth/admin.json',
