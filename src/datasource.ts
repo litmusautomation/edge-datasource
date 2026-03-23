@@ -47,6 +47,9 @@ export class DataSource extends DataSourceWithBackend<EdgeQuery, EdgeDataSourceO
     if (query.hide) {
       return false;
     }
+    if (!query.topic || query.topic.trim() === '') {
+      return false;
+    }
     return true;
   }
 }
