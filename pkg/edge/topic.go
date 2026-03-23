@@ -36,6 +36,7 @@ func (t *Topic) ToDataFrame() (*data.Frame, error) {
 // * subscriptions is a map of topic name and subscription pointer
 type TopicMap struct {
 	sync.Map
+	mu            sync.RWMutex
 	subscriptions map[string]*nats.Subscription
 }
 
@@ -78,13 +79,19 @@ func (tm *TopicMap) AddMessage(topicName string, msg Message) {
 }
 
 func (tm *TopicMap) AddSubscription(topicName string, sub *nats.Subscription) {
+	tm.mu.Lock()
+	defer tm.mu.Unlock()
 	tm.subscriptions[topicName] = sub
 }
 
 func (tm *TopicMap) RemoveSubscription(topicName string) {
+	tm.mu.Lock()
+	defer tm.mu.Unlock()
 	delete(tm.subscriptions, topicName)
 }
 
 func (tm *TopicMap) GetSubscription(topicName string) *nats.Subscription {
+	tm.mu.RLock()
+	defer tm.mu.RUnlock()
 	return tm.subscriptions[topicName]
 }
