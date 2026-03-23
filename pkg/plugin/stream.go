@@ -34,7 +34,7 @@ func (ds *EdgeDatasource) RunStream(ctx context.Context, req *backend.RunStreamR
 		return fmt.Errorf("failed to subscribe to topic: %w", err)
 	}
 
-	log.DefaultLogger.Info("Started Streaming", "path", req.Path)
+	log.DefaultLogger.Debug("Started Streaming", "path", req.Path)
 
 	// Unsubscribe from the topic when the context is canceled
 	defer ds.Client.Unsubscribe(req.Path)
@@ -46,7 +46,7 @@ func (ds *EdgeDatasource) RunStream(ctx context.Context, req *backend.RunStreamR
 	for {
 		select {
 		case <-ctx.Done():
-			log.DefaultLogger.Warn("Stopped Streaming (context canceled)", "path", req.Path, "err", ctx.Err())
+			log.DefaultLogger.Debug("Stopped Streaming (context canceled)", "path", req.Path, "err", ctx.Err())
 			ticker.Stop()
 			return nil
 		case <-ticker.C:

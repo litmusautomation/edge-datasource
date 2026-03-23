@@ -82,7 +82,7 @@ func (c *client) Subscribe(topicName string) error {
 func (c *client) Unsubscribe(topicName string) {
 	t, ok := c.GetTopic(topicName)
 	if !ok {
-		log.DefaultLogger.Warn("Topic not found", "topic", topicName)
+		log.DefaultLogger.Debug("Topic not found", "topic", topicName)
 		return
 	}
 

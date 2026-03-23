@@ -39,3 +39,7 @@ e2e-results/
 
 # Local secrets for Docker Compose / provisioning
 .env
+
+.cursor/
+.agents/
+.claude/
