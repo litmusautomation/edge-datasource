@@ -1,6 +1,7 @@
 package edge
 
 import (
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
+	"github.com/grafana/grafana-plugin-sdk-go/backend/tracing"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
 	"github.com/nats-io/nats.go"
 )
@@ -61,13 +63,20 @@ func NewClient(opts ConnectionOptions) (Client, error) {
 }
 
 func (c *client) Subscribe(topicName string) error {
+	_, span := tracing.DefaultTracer().Start(context.Background(), "edge.Subscribe")
+	defer span.End()
+
 	if topicName == "" {
-		return fmt.Errorf("empty topic")
+		err := fmt.Errorf("empty topic")
+		tracing.Error(span, err)
+		return err
 	}
 
 	// Validate the topic
 	if err := c.validateTopic(topicName); err != nil {
-		return fmt.Errorf("invalid topic: %w", err)
+		wrapped := fmt.Errorf("invalid topic: %w", err)
+		tracing.Error(span, wrapped)
+		return wrapped
 	}
 
 	topic := &Topic{
@@ -75,13 +84,17 @@ func (c *client) Subscribe(topicName string) error {
 	}
 
 	if _, ok := c.topicMap.Load(topicName); ok {
-		return fmt.Errorf("already subscribed to topic: [%s]", topicName)
+		err := fmt.Errorf("already subscribed to topic: [%s]", topicName)
+		tracing.Error(span, err)
+		return err
 	}
 
 	log.DefaultLogger.Debug("Subscribing to NATS Topic", "topic", topicName)
 	sub, err := c.conn.Subscribe(topicName, c.MessageHandler)
 	if err != nil {
-		return fmt.Errorf("failed to subscribe to NATS Topic: %w", err)
+		wrapped := fmt.Errorf("failed to subscribe to NATS Topic: %w", err)
+		tracing.Error(span, wrapped)
+		return wrapped
 	}
 
 	c.topicMap.AddSubscription(topicName, sub)

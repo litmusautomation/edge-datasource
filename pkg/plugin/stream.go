@@ -7,6 +7,7 @@ import (
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
+	"github.com/grafana/grafana-plugin-sdk-go/backend/tracing"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
 	"github.com/litmus/edge/pkg/edge"
 )
@@ -28,9 +29,13 @@ func (ds *EdgeDatasource) PublishStream(context.Context, *backend.PublishStreamR
 }
 
 func (ds *EdgeDatasource) RunStream(ctx context.Context, req *backend.RunStreamRequest, sender *backend.StreamSender) error {
+	ctx, span := tracing.DefaultTracer().Start(ctx, "RunStream")
+	defer span.End()
+
 	// Subscribe to the topic
 	err := ds.Client.Subscribe(req.Path)
 	if err != nil {
+		tracing.Error(span, err)
 		return fmt.Errorf("failed to subscribe to topic: %w", err)
 	}
 
