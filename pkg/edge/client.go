@@ -35,7 +35,17 @@ type client struct {
 func NewClient(opts ConnectionOptions) (Client, error) {
 	url := fmt.Sprintf("nats://admin:%s@%s:4222", opts.Token, opts.Hostname)
 	skipVerify := nats.Secure(&tls.Config{InsecureSkipVerify: true})
-	conn, err := nats.Connect(url, skipVerify)
+	conn, err := nats.Connect(url,
+		skipVerify,
+		nats.MaxReconnects(-1),
+		nats.ReconnectWait(2*time.Second),
+		nats.DisconnectErrHandler(func(_ *nats.Conn, err error) {
+			log.DefaultLogger.Warn("NATS disconnected", "hostname", opts.Hostname, "err", err)
+		}),
+		nats.ReconnectHandler(func(_ *nats.Conn) {
+			log.DefaultLogger.Info("NATS reconnected", "hostname", opts.Hostname)
+		}),
+	)
 	if err != nil {
 		return nil, err
 	}
