@@ -16,6 +16,9 @@ import (
 	"github.com/nats-io/nats.go"
 )
 
+// topicTokenPattern validates that each dot-separated token contains only non-whitespace, non-dot characters.
+var topicTokenPattern = regexp.MustCompile(`^[^\s.]+$`)
+
 type Client interface {
 	Subscribe(string) error
 	Unsubscribe(string)
@@ -154,15 +157,12 @@ func (c *client) MessageHandler(msg *nats.Msg) {
 // - Each token in the topic should consist of non-whitespace characters and should not contain any dots.
 // Returns an error if the topic is invalid.
 func (c *client) validateTopic(topic string) error {
-	// Compile the regex pattern once and reuse it
-	pattern := regexp.MustCompile(`^[^\s.]+$`)
-
 	tokens := strings.Split(topic, ".")
 	for _, token := range tokens {
 		if token == ">" || token == "*" {
 			return fmt.Errorf("wildcards are not allowed")
 		}
-		if !pattern.MatchString(token) {
+		if !topicTokenPattern.MatchString(token) {
 			return fmt.Errorf("invalid token: %s", token)
 		}
 	}

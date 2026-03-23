@@ -3,7 +3,6 @@ package plugin
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"testing"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
@@ -78,5 +77,5 @@ func TestNewEdgeInstance_EmptySettings(t *testing.T) {
 		DecryptedSecureJSONData: map[string]string{"token": ""},
 	}
 	_, err = NewEdgeInstance(context.Background(), settings)
-	require.Error(t, err, fmt.Sprintf("expected error for empty NATS settings"))
+	require.Error(t, err, "expected error for empty NATS settings")
 }
