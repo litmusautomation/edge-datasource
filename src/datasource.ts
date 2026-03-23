@@ -4,8 +4,9 @@ import {
   DataQueryRequest,
   DataQueryResponse,
   LiveChannelScope,
+  ScopedVars,
 } from '@grafana/data';
-import { DataSourceWithBackend, getGrafanaLiveSrv } from '@grafana/runtime';
+import { DataSourceWithBackend, getGrafanaLiveSrv, getTemplateSrv } from '@grafana/runtime';
 
 import { EdgeQuery, EdgeDataSourceOptions, DEFAULT_QUERY } from './types';
 import { Observable, merge } from 'rxjs';
@@ -23,20 +24,26 @@ export class DataSource extends DataSourceWithBackend<EdgeQuery, EdgeDataSourceO
 
     const observables = request.targets.map((target) => {
       const query = defaults(target, DEFAULT_QUERY);
+      const interpolatedTopic = getTemplateSrv().replace(query.topic, request.scopedVars);
 
       return getGrafanaLiveSrv().getDataStream({
         addr: {
           scope: LiveChannelScope.DataSource,
           stream: this.uid,
-          path: query?.topic || '',
+          path: interpolatedTopic || '',
           data: {
             ...query,
+            topic: interpolatedTopic,
           },
         },
       });
     });
 
     return merge(...observables);
+  }
+
+  applyTemplateVariables(query: EdgeQuery, scopedVars: ScopedVars): EdgeQuery {
+    return { ...query, topic: getTemplateSrv().replace(query.topic, scopedVars) };
   }
 
   getDefaultQuery(_: CoreApp): Partial<EdgeQuery> {
