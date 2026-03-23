@@ -1,77 +1,82 @@
 package plugin
 
-// import (
-// 	"context"
-// 	"fmt"
-// 	"testing"
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"testing"
 
-// 	"github.com/grafana/grafana-plugin-sdk-go/backend"
-// 	edge "github.com/litmus/edge/pkg/edge"
-// 	"github.com/stretchr/testify/require"
-// )
+	"github.com/grafana/grafana-plugin-sdk-go/backend"
+	"github.com/litmus/edge/pkg/edge"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
 
-// var (
-// 	HOSTNAME        = "127.0.0.1"
-// 	TOKEN           = "s3cr3t"
-// 	SKIP_TLS_VERIFY = true
+// mockClient implements edge.Client for tests without a real NATS connection.
+type mockClient struct {
+	connected   bool
+	subscribed  map[string]bool
+	subscribeErr error
+}
 
-// 	CLIENT_SETTINGS = edge.ConnectionOptions{
-// 		Token:    TOKEN,
-// 		Hostname: HOSTNAME,
-// 	}
+func newMockClient(connected bool) *mockClient {
+	return &mockClient{connected: connected, subscribed: make(map[string]bool)}
+}
 
-// 	SERVER_SETTINGS = backend.DataSourceInstanceSettings{
-// 		JSONData: []byte(fmt.Sprintf(`{"host": "%s"}`, HOSTNAME)),
-// 		DecryptedSecureJSONData: map[string]string{
-// 			"token": TOKEN,
-// 		},
-// 	}
-// )
+func (m *mockClient) Subscribe(topic string) error {
+	if m.subscribeErr != nil {
+		return m.subscribeErr
+	}
+	m.subscribed[topic] = true
+	return nil
+}
 
-// func TestNewEdgeInstance(t *testing.T) {
-// 	t.Run("should return a new instance of EdgeDatasource", func(t *testing.T) {
-// 		ctx := context.Background()
-// 		settings := SERVER_SETTINGS
-// 		instance, err := NewEdgeInstance(ctx, settings)
-// 		if err != nil {
-// 			t.Errorf("Unexpected error: %v", err)
-// 		}
-// 		if instance == nil {
-// 			t.Error("Expected non-nil instance")
-// 		}
-// 	})
+func (m *mockClient) Unsubscribe(topic string) {
+	delete(m.subscribed, topic)
+}
 
-// 	t.Run("should return an error if settings are invalid", func(t *testing.T) {
-// 		ctx := context.Background()
-// 		settings := backend.DataSourceInstanceSettings{}
-// 		_, err := NewEdgeInstance(ctx, settings)
-// 		if err == nil {
-// 			t.Error("Expected error")
-// 		}
-// 	})
-// }
+func (m *mockClient) GetTopic(topic string) (*edge.Topic, bool) {
+	return nil, false
+}
 
-// func TestCheckHealth(t *testing.T) {
-// 	t.Run("should return HealthStatusOk", func(t *testing.T) {
-// 		client, err := edge.NewClient(CLIENT_SETTINGS)
-// 		if err != nil {
-// 			t.Errorf("Unexpected error: %v", err)
-// 		}
-// 		ds := NewEdgeDatasource(client, "uid")
-// 		res, _ := ds.CheckHealth(context.Background(), &backend.CheckHealthRequest{})
-// 		require.Equal(t, res.Status, backend.HealthStatusOk)
-// 		require.Equal(t, res.Message, "Connected to the Edge")
-// 	})
+func (m *mockClient) IsConnected() bool {
+	return m.connected
+}
 
-// 	t.Run("should return HealthStatusError", func(t *testing.T) {
-// 		client, err := edge.NewClient(CLIENT_SETTINGS)
-// 		if err != nil {
-// 			t.Errorf("Unexpected error: %v", err)
-// 		}
-// 		ds := NewEdgeDatasource(client, "uid")
-// 		ds.Dispose()
-// 		res, _ := ds.CheckHealth(context.Background(), &backend.CheckHealthRequest{})
-// 		require.Equal(t, res.Status, backend.HealthStatusError)
-// 		require.Equal(t, res.Message, "Not connected to the Edge")
-// 	})
-// }
+func (m *mockClient) Dispose() {
+	m.connected = false
+}
+
+func TestCheckHealth_Connected(t *testing.T) {
+	ds := NewEdgeDatasource(newMockClient(true), "uid")
+	res, err := ds.CheckHealth(context.Background(), &backend.CheckHealthRequest{})
+	require.NoError(t, err)
+	assert.Equal(t, backend.HealthStatusOk, res.Status)
+}
+
+func TestCheckHealth_Disconnected(t *testing.T) {
+	ds := NewEdgeDatasource(newMockClient(false), "uid")
+	res, err := ds.CheckHealth(context.Background(), &backend.CheckHealthRequest{})
+	require.NoError(t, err)
+	assert.Equal(t, backend.HealthStatusError, res.Status)
+}
+
+func TestNewEdgeInstance_InvalidSettings(t *testing.T) {
+	settings := backend.DataSourceInstanceSettings{
+		JSONData: []byte(`not-valid-json`),
+	}
+	_, err := NewEdgeInstance(context.Background(), settings)
+	require.Error(t, err)
+}
+
+func TestNewEdgeInstance_EmptySettings(t *testing.T) {
+	// Valid JSON but no hostname/token → NATS connect should fail.
+	data, err := json.Marshal(map[string]string{"hostname": ""})
+	require.NoError(t, err)
+	settings := backend.DataSourceInstanceSettings{
+		JSONData:                data,
+		DecryptedSecureJSONData: map[string]string{"token": ""},
+	}
+	_, err = NewEdgeInstance(context.Background(), settings)
+	require.Error(t, err, fmt.Sprintf("expected error for empty NATS settings"))
+}
