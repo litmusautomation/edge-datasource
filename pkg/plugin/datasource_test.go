@@ -30,8 +30,9 @@ func (m *mockClient) Subscribe(topic string) error {
 	return nil
 }
 
-func (m *mockClient) Unsubscribe(topic string) {
+func (m *mockClient) Unsubscribe(topic string) error {
 	delete(m.subscribed, topic)
+	return nil
 }
 
 func (m *mockClient) GetTopic(topic string) (*edge.Topic, bool) {

@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/tracing"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
@@ -21,7 +22,7 @@ var topicTokenPattern = regexp.MustCompile(`^[^\s.]+$`)
 
 type Client interface {
 	Subscribe(string) error
-	Unsubscribe(string)
+	Unsubscribe(string) error
 	GetTopic(string) (*Topic, bool)
 	IsConnected() bool
 	Dispose()
@@ -52,7 +53,7 @@ func NewClient(opts ConnectionOptions) (Client, error) {
 		}),
 	)
 	if err != nil {
-		return nil, err
+		return nil, backend.DownstreamErrorf("error connecting to NATS server: %s", err)
 	}
 
 	log.DefaultLogger.Info("Connected to NATS Server", "hostname", opts.Hostname)
@@ -82,20 +83,19 @@ func (c *client) Subscribe(topicName string) error {
 		return wrapped
 	}
 
-	topic := &Topic{
-		TopicName: topicName,
+	// Idempotent: if already subscribed, return without error
+	if _, ok := c.topicMap.Load(topicName); ok {
+		return nil
 	}
 
-	if _, ok := c.topicMap.Load(topicName); ok {
-		err := fmt.Errorf("already subscribed to topic: [%s]", topicName)
-		tracing.Error(span, err)
-		return err
+	topic := &Topic{
+		TopicName: topicName,
 	}
 
 	log.DefaultLogger.Debug("Subscribing to NATS Topic", "topic", topicName)
 	sub, err := c.conn.Subscribe(topicName, c.MessageHandler)
 	if err != nil {
-		wrapped := fmt.Errorf("failed to subscribe to NATS Topic: %w", err)
+		wrapped := backend.DownstreamErrorf("failed to subscribe to NATS topic: %s", err)
 		tracing.Error(span, wrapped)
 		return wrapped
 	}
@@ -105,25 +105,23 @@ func (c *client) Subscribe(topicName string) error {
 	return nil
 }
 
-func (c *client) Unsubscribe(topicName string) {
+func (c *client) Unsubscribe(topicName string) error {
 	t, ok := c.GetTopic(topicName)
 	if !ok {
-		log.DefaultLogger.Debug("Topic not found", "topic", topicName)
-		return
+		return nil // No error if topic doesn't exist
 	}
 
 	// Get the subscription
 	sub := c.topicMap.GetSubscription(t.TopicName)
 	if sub == nil {
 		log.DefaultLogger.Debug("Subscription not found", "topic", topicName)
-		return
+		return nil
 	}
 
 	// Unsubscribe from the topic
 	log.DefaultLogger.Debug("Unsubscribing from NATS Topic", "topic", topicName)
 	if err := sub.Unsubscribe(); err != nil {
-		log.DefaultLogger.Debug("Failed to unsubscribe from NATS Topic", "topic", topicName, "err", err)
-		return
+		return backend.DownstreamErrorf("failed to unsubscribe from NATS topic %s: %s", topicName, err)
 	}
 
 	// Delete the topic
@@ -132,6 +130,7 @@ func (c *client) Unsubscribe(topicName string) {
 	// Remove the subscription
 	c.topicMap.RemoveSubscription(t.TopicName)
 	log.DefaultLogger.Debug("Unsubscribed from NATS Topic", "topic", topicName)
+	return nil
 }
 
 func (c *client) GetTopic(topicName string) (*Topic, bool) {

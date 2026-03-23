@@ -2,7 +2,6 @@ package plugin
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
@@ -32,17 +31,23 @@ func (ds *EdgeDatasource) RunStream(ctx context.Context, req *backend.RunStreamR
 	ctx, span := tracing.DefaultTracer().Start(ctx, "RunStream")
 	defer span.End()
 
+	logger := log.DefaultLogger.FromContext(ctx)
+
 	// Subscribe to the topic
 	err := ds.Client.Subscribe(req.Path)
 	if err != nil {
 		tracing.Error(span, err)
-		return fmt.Errorf("failed to subscribe to topic: %w", err)
+		return err
 	}
 
-	log.DefaultLogger.Debug("Started Streaming", "path", req.Path)
+	logger.Debug("Started Streaming", "path", req.Path)
 
 	// Unsubscribe from the topic when the context is canceled
-	defer ds.Client.Unsubscribe(req.Path)
+	defer func() {
+		if err := ds.Client.Unsubscribe(req.Path); err != nil {
+			logger.Error("Failed to unsubscribe from NATS topic", "path", req.Path, "error", err)
+		}
+	}()
 
 	// Create a ticker to send data frames at the specified interval
 	// TODO: Make the interval configurable
@@ -51,21 +56,21 @@ func (ds *EdgeDatasource) RunStream(ctx context.Context, req *backend.RunStreamR
 	for {
 		select {
 		case <-ctx.Done():
-			log.DefaultLogger.Debug("Stopped Streaming (context canceled)", "path", req.Path, "err", ctx.Err())
+			logger.Debug("Stopped streaming (context canceled)", "path", req.Path)
 			ticker.Stop()
 			return nil
 		case <-ticker.C:
 			// Get the topic
 			topic, ok := ds.Client.GetTopic(req.Path)
 			if !ok {
-				log.DefaultLogger.Warn("Topic not found", "path", req.Path)
+				logger.Debug("Topic not found", "path", req.Path)
 				break
 			}
 
 			// Convert the topic messages to a data frame
 			frame, err := topic.ToDataFrame()
 			if err != nil {
-				log.DefaultLogger.Warn("Failed to convert topic to data frame", "path", req.Path, "error", err)
+				logger.Error("Failed to convert topic to data frame", "path", req.Path, "error", backend.DownstreamError(err))
 				break
 			}
 
@@ -74,7 +79,7 @@ func (ds *EdgeDatasource) RunStream(ctx context.Context, req *backend.RunStreamR
 
 			// Send the frame
 			if err := sender.SendFrame(frame, data.IncludeAll); err != nil {
-				log.DefaultLogger.Warn("Failed to send the data frame", "path", req.Path, "error", err)
+				logger.Error("Failed to send data frame", "path", req.Path, "error", backend.DownstreamError(err))
 			}
 		}
 	}
