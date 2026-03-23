@@ -1,3 +1,6 @@
+# Hostname and token are read from Grafana's process environment at startup.
+# With Docker Compose, copy `.env.example` to `.env` next to `docker-compose.yaml`, or export the variables before `docker compose up`.
+# See also: https://grafana.com/docs/grafana/latest/administration/provisioning/#use-environment-variables-in-provisioning-files
 apiVersion: 1
 
 datasources:
@@ -9,6 +12,6 @@ datasources:
     version: 1
     editable: true
     jsonData:
-      hostname: '10.17.11.205'
+      hostname: ${LITMUS_EDGE_HOSTNAME}
     secureJsonData:
-      token: 'f24c5bc1-9eb0-4b68-a34c-84a06d3af18e'
+      token: ${LITMUS_EDGE_TOKEN}
