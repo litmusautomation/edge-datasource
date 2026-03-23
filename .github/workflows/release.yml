@@ -1,6 +1,8 @@
 # https://github.com/grafana/plugin-actions/blob/main/build-plugin/README.md
-# Signing: the action signs the package when policy_token is set 
+# Signing: the action signs the package when policy_token is set
 # https://grafana.com/developers/plugin-tools/publish-a-plugin/sign-a-plugin#generate-an-access-policy-token
+# Changelog: https://github.com/grafana/plugin-actions/blob/main/build-plugin/README.md#changelog-generation
+# Optional secret CHANGELOG_PAT (repo contents write) if default branch protection blocks GITHUB_TOKEN pushes.
 name: Release
 
 on:
@@ -15,13 +17,19 @@ jobs:
       contents: write
       id-token: write
       attestations: write
+      issues: read
+      pull-requests: read
     steps:
       - uses: actions/checkout@v6
         with:
-          persist-credentials: false
+          # Required so build-plugin can git push the updated CHANGELOG.md (see changelog-generation).
+          persist-credentials: true
+          token: ${{ secrets.CHANGELOG_PAT || github.token }}
 
       - uses: grafana/plugin-actions/build-plugin@build-plugin/v1.2.0
         with:
+          token: ${{ secrets.CHANGELOG_PAT || github.token }}
           policy_token: ${{ secrets.GRAFANA_ACCESS_POLICY_TOKEN }}
           node-version: '22'
           attestation: true
+          use_changelog_generator: true
