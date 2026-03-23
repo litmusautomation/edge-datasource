@@ -5,7 +5,7 @@
   "id": "litmus-edge-datasource",
   "metrics": true,
   "backend": true,
-  "executable": "gpx_edge_linux_amd64",
+  "executable": "gpx_edge",
   "annotations": true,
   "alerting": true,
   "logs": true,
@@ -14,13 +14,7 @@
     "author": {
       "name": "Litmus Automation"
     },
-    "keywords": [
-      "datasource",
-      "litmus edge",
-      "edge",
-      "real time",
-      "streaming"
-    ],
+    "keywords": ["datasource", "litmus edge", "edge", "real time", "streaming"],
     "screenshots": [
       {
         "name": "Litmus Edge Data Source",
@@ -57,7 +51,7 @@
     "updated": "%TODAY%"
   },
   "dependencies": {
-    "grafanaDependency": ">=10.0.3",
+    "grafanaDependency": ">=12.2.0",
     "plugins": []
   }
 }

@@ -26,10 +26,16 @@ artifacts/
 work/
 ci/
 e2e-results/
-**/cypress/videos
-**/cypress/report.json
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
 
 # Editor
 .idea
 
 .eslintcache
+
+# Local secrets for Docker Compose / provisioning
+.env

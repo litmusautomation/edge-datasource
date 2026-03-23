@@ -27,7 +27,7 @@ export class DataSource extends DataSourceWithBackend<EdgeQuery, EdgeDataSourceO
       return getGrafanaLiveSrv().getDataStream({
         addr: {
           scope: LiveChannelScope.DataSource,
-          namespace: this.uid,
+          stream: this.uid,
           path: query?.topic || '',
           data: {
             ...query,
