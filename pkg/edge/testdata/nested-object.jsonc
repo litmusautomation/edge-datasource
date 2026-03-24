@@ -1,0 +1,55 @@
+//  🌟 This was machine generated.  Do not edit. 🌟
+//  
+//  Frame[0] 
+//  Name: edge
+//  Dimensions: 2 Fields by 1 Rows
+//  +-------------------------------+-------------------------+
+//  | Name: Time                    | Name: tag/location      |
+//  | Labels:                       | Labels:                 |
+//  | Type: []time.Time             | Type: []json.RawMessage |
+//  +-------------------------------+-------------------------+
+//  | 2026-01-01 00:00:00 +0000 UTC | {"lat":40.7,"lon":-74}  |
+//  +-------------------------------+-------------------------+
+//  
+//  
+//  🌟 This was machine generated.  Do not edit. 🌟
+{
+  "status": 200,
+  "frames": [
+    {
+      "schema": {
+        "name": "edge",
+        "fields": [
+          {
+            "name": "Time",
+            "type": "time",
+            "typeInfo": {
+              "frame": "time.Time"
+            }
+          },
+          {
+            "name": "tag/location",
+            "type": "other",
+            "typeInfo": {
+              "frame": "json.RawMessage"
+            },
+            "labels": {}
+          }
+        ]
+      },
+      "data": {
+        "values": [
+          [
+            1767225600000
+          ],
+          [
+            {
+              "lat": 40.7,
+              "lon": -74
+            }
+          ]
+        ]
+      }
+    }
+  ]
+}

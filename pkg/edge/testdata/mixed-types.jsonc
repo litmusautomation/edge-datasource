@@ -1,0 +1,104 @@
+//  🌟 This was machine generated.  Do not edit. 🌟
+//  
+//  Frame[0] 
+//  Name: edge
+//  Dimensions: 6 Fields by 1 Rows
+//  +-------------------------------+------------------+-------------------------+-----------------+-------------------------+------------------+
+//  | Name: Time                    | Name: tag/active | Name: tag/meta          | Name: tag/name  | Name: tag/tags          | Name: tag/value  |
+//  | Labels:                       | Labels:          | Labels:                 | Labels:         | Labels:                 | Labels:          |
+//  | Type: []time.Time             | Type: []*bool    | Type: []json.RawMessage | Type: []*string | Type: []json.RawMessage | Type: []*float64 |
+//  +-------------------------------+------------------+-------------------------+-----------------+-------------------------+------------------+
+//  | 2026-01-01 00:00:00 +0000 UTC | true             | {"version":2}           | sensor-1        | ["a","b"]               | 42               |
+//  +-------------------------------+------------------+-------------------------+-----------------+-------------------------+------------------+
+//  
+//  
+//  🌟 This was machine generated.  Do not edit. 🌟
+{
+  "status": 200,
+  "frames": [
+    {
+      "schema": {
+        "name": "edge",
+        "fields": [
+          {
+            "name": "Time",
+            "type": "time",
+            "typeInfo": {
+              "frame": "time.Time"
+            }
+          },
+          {
+            "name": "tag/active",
+            "type": "boolean",
+            "typeInfo": {
+              "frame": "bool",
+              "nullable": true
+            },
+            "labels": {}
+          },
+          {
+            "name": "tag/meta",
+            "type": "other",
+            "typeInfo": {
+              "frame": "json.RawMessage"
+            },
+            "labels": {}
+          },
+          {
+            "name": "tag/name",
+            "type": "string",
+            "typeInfo": {
+              "frame": "string",
+              "nullable": true
+            },
+            "labels": {}
+          },
+          {
+            "name": "tag/tags",
+            "type": "other",
+            "typeInfo": {
+              "frame": "json.RawMessage"
+            },
+            "labels": {}
+          },
+          {
+            "name": "tag/value",
+            "type": "number",
+            "typeInfo": {
+              "frame": "float64",
+              "nullable": true
+            },
+            "labels": {}
+          }
+        ]
+      },
+      "data": {
+        "values": [
+          [
+            1767225600000
+          ],
+          [
+            true
+          ],
+          [
+            {
+              "version": 2
+            }
+          ],
+          [
+            "sensor-1"
+          ],
+          [
+            [
+              "a",
+              "b"
+            ]
+          ],
+          [
+            42
+          ]
+        ]
+      }
+    }
+  ]
+}

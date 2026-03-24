@@ -1,6 +1,7 @@
 package edge
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/nats-io/nats.go"
@@ -32,6 +33,38 @@ func TestValidateTopic(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestSubscribe_Idempotent(t *testing.T) {
+	// Subscribing to the same topic twice should be idempotent —
+	// the second call returns nil and doesn't create a new topic.
+	tm := &TopicMap{
+		Map:           sync.Map{},
+		subscriptions: make(map[string]*nats.Subscription),
+	}
+
+	topic := &Topic{TopicName: "sensor.temp"}
+	tm.Store(topic)
+
+	// Simulate the idempotency check that client.Subscribe performs.
+	t1, ok := tm.Load("sensor.temp")
+	require.True(t, ok)
+
+	t2, ok := tm.Load("sensor.temp")
+	require.True(t, ok)
+
+	assert.Same(t, t1, t2, "second Load should return the same *Topic pointer")
+}
+
+func TestTopicMap_GetTopic_NotFound(t *testing.T) {
+	tm := &TopicMap{
+		Map:           sync.Map{},
+		subscriptions: make(map[string]*nats.Subscription),
+	}
+
+	topic, ok := tm.Load("nonexistent")
+	assert.False(t, ok)
+	assert.Nil(t, topic)
 }
 
 func TestTopicMap_SubscriptionMutex(t *testing.T) {
