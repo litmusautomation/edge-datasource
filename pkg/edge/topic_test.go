@@ -49,7 +49,7 @@ func TestTopic_ConcurrentAccess(t *testing.T) {
 	topic := &Topic{TopicName: "test"}
 	var wg sync.WaitGroup
 
-	// Writer goroutine
+	// NATS callback goroutine — writes messages
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
@@ -58,14 +58,17 @@ func TestTopic_ConcurrentAccess(t *testing.T) {
 		}
 	}()
 
-	// Reader goroutine
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for i := 0; i < 100; i++ {
-			topic.DrainMessages()
-		}
-	}()
+	// Two RunStream goroutines — drain and convert to frames concurrently
+	for range 2 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for i := 0; i < 100; i++ {
+				msgs := topic.DrainMessages()
+				_, _ = topic.ToDataFrame(msgs)
+			}
+		}()
+	}
 
 	wg.Wait()
 	// If the race detector doesn't fire, the test passes.

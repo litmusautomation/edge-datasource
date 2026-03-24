@@ -45,7 +45,11 @@ func (t *Topic) DrainMessages() []Message {
 }
 
 // ToDataFrame converts the given messages to a data frame.
+// The mutex protects both lazy framer initialization and the mutable framer
+// state, which is unsafe for concurrent use by multiple RunStream goroutines.
 func (t *Topic) ToDataFrame(messages []Message) (*data.Frame, error) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
 	if t.framer == nil {
 		t.framer = newFramer()
 	}
