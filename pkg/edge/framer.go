@@ -61,7 +61,7 @@ func (df *framer) addNil(fieldName string) {
 	}
 
 	if idx, ok := df.fieldMap[df.key()]; ok {
-		df.fields[idx].Set(0, nil)
+		df.fields[idx].Append(nil)
 		return
 	}
 	log.DefaultLogger.Debug("nil value for unknown field", "key", df.key(), "fieldName", fieldName)

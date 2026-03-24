@@ -31,7 +31,7 @@ export function QueryEditor({ query, onChange, onRunQuery }: Props) {
           name="topic"
           required
           placeholder='e.g. "enterprise.site.area.line.machine.sensor"'
-          value={query.topic}
+          value={query.topic ?? ''}
           onBlur={onRunQuery}
           onChange={onTopicChange}
         />

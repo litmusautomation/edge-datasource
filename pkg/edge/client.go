@@ -246,8 +246,8 @@ func (c *client) createMessageFromDHMessage(msg *nats.Msg, dhMessage DHMessage) 
 
 	valueBytes, err := json.Marshal(dhMessage.Value)
 	if err != nil {
-		log.DefaultLogger.Error("Failed to marshal value", "topic", msg.Subject)
-		return Message{}
+		log.DefaultLogger.Warn("Failed to marshal DH value, falling back to raw data", "topic", msg.Subject, "error", err)
+		return c.createMessageFromRawData(msg)
 	}
 
 	return Message{

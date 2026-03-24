@@ -3,13 +3,15 @@ import {
   CoreApp,
   DataQueryRequest,
   DataQueryResponse,
+  LoadingState,
   LiveChannelScope,
   ScopedVars,
 } from '@grafana/data';
 import { DataSourceWithBackend, getGrafanaLiveSrv, getTemplateSrv } from '@grafana/runtime';
 
 import { EdgeQuery, EdgeDataSourceOptions, DEFAULT_QUERY } from './types';
-import { Observable, merge } from 'rxjs';
+import { Observable, merge, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { defaults } from 'lodash';
 
 export class DataSource extends DataSourceWithBackend<EdgeQuery, EdgeDataSourceOptions> {
@@ -22,17 +24,27 @@ export class DataSource extends DataSourceWithBackend<EdgeQuery, EdgeDataSourceO
       const query = defaults(target, DEFAULT_QUERY);
       const interpolatedTopic = getTemplateSrv().replace(query.topic, request.scopedVars);
 
-      return getGrafanaLiveSrv().getDataStream({
-        addr: {
-          scope: LiveChannelScope.DataSource,
-          stream: this.uid,
-          path: interpolatedTopic || '',
-          data: {
-            ...query,
-            topic: interpolatedTopic,
+      return getGrafanaLiveSrv()
+        .getDataStream({
+          addr: {
+            scope: LiveChannelScope.DataSource,
+            stream: this.uid,
+            path: interpolatedTopic || '',
+            data: {
+              ...query,
+              topic: interpolatedTopic,
+            },
           },
-        },
-      });
+        })
+        .pipe(
+          catchError((err) =>
+            of<DataQueryResponse>({
+              data: [],
+              state: LoadingState.Error,
+              error: { message: err instanceof Error ? err.message : String(err) },
+            })
+          )
+        );
     });
 
     return merge(...observables);
