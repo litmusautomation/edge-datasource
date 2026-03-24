@@ -25,9 +25,8 @@ services:
 
     environment:
       LITMUS_EDGE_HOSTNAME: ${LITMUS_EDGE_HOSTNAME:-}
-      LITMUS_EDGE_TOKEN: ${LITMUS_EDGE_TOKEN:-}
-      MQTT_BROKER_URI: ${MQTT_BROKER_URI:-}
-      GF_INSTALL_PLUGINS: grafana-mqtt-datasource
+      LITMUS_EDGE_ACCESS_ACCOUNT_TOKEN: ${LITMUS_EDGE_ACCESS_ACCOUNT_TOKEN:-}
+      LITMUS_EDGE_API_TOKEN: ${LITMUS_EDGE_API_TOKEN:-}
       NODE_ENV: development
       GF_LOG_FILTERS: plugin.litmus-edge-datasource:debug
       GF_LOG_LEVEL: debug
