@@ -26,16 +26,37 @@ The Litmus Edge data source plugin enables the visualization of real time data s
 
 ## Stream data from the edge
 
-To stream data from the edge, you need to create a new query and provide the following fields:
+> **Note:** This plugin streams live data only — it does not query historical messages.
 
-- **Topic**: The topic name to fetch the data from.
+To stream data, add a new query panel and enter a **Topic** — the dot-separated
+NATS subject published by Litmus Edge (e.g. `enterprise.site.area.line.cell.tag`).
 
 ![Query Configuration](https://github.com/litmusautomation/edge-datasource/raw/main/img/le-datasource-query.png)
 
-> - The plugin supports topics publishing numbers, strings, boolean, and JSON objects. Use the `Extract Fields` transformation to extract the fields from the JSON object.
-> - The plugin automatically adds the `timestamp` field to the query result if it is not present in the topic data.
-> - The plugin automatically adds the topic context for Devicehub tags.
-> - Wildcard topics are not allowed.
+### Supported data types
+
+The plugin handles the following payload types automatically:
+
+| Payload type | Grafana field type |
+|-------------|-------------------|
+| Number | Float64 |
+| String | String |
+| Boolean | Boolean |
+| JSON object | Nested fields (use **Extract Fields** transformation) |
+
+A `timestamp` field is added automatically when the payload does not include one.
+For DeviceHub tags the plugin also populates labels with the tag context
+(device name, data type, description, etc.).
+
+### Template variables
+
+Dashboard variables are supported in the topic field — for example
+`$site.$area.$line.$sensor` — and are resolved before each query executes.
+
+### Limitations
+
+- Wildcard topics (`*`, `>`) are not allowed.
+- Each query subscribes to exactly one topic.
 
 ## Development
 
