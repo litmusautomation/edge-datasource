@@ -47,6 +47,14 @@ describe('DataSource.filterQuery', () => {
     expect(ds.filterQuery({ refId: 'A' } as EdgeQuery)).toBe(false);
   });
 
+  it('returns false for wildcard topic', () => {
+    expect(ds.filterQuery({ refId: 'A', topic: 'device.*' })).toBe(false);
+  });
+
+  it('returns false for malformed topic with empty token', () => {
+    expect(ds.filterQuery({ refId: 'A', topic: 'device..temp' })).toBe(false);
+  });
+
   it('returns true for a valid topic', () => {
     expect(ds.filterQuery({ refId: 'A', topic: 'device.sensor' })).toBe(true);
   });

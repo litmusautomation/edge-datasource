@@ -13,6 +13,7 @@ import { EdgeQuery, EdgeDataSourceOptions, TopicSearchResponse, DEFAULT_QUERY } 
 import { Observable, merge, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { defaults } from 'lodash';
+import { getTopicError } from './topicValidation';
 
 export class DataSource extends DataSourceWithBackend<EdgeQuery, EdgeDataSourceOptions> {
   constructor(instanceSettings: DataSourceInstanceSettings<EdgeDataSourceOptions>) {
@@ -66,7 +67,7 @@ export class DataSource extends DataSourceWithBackend<EdgeQuery, EdgeDataSourceO
     if (query.hide) {
       return false;
     }
-    if (!query.topic || query.topic.trim() === '') {
+    if (getTopicError(query.topic || '') !== '') {
       return false;
     }
     return true;

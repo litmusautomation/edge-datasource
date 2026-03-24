@@ -1,21 +1,34 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { InlineFieldRow, InlineField, Combobox, Text, Icon, type ComboboxOption } from '@grafana/ui';
-import { QueryEditorProps } from '@grafana/data';
+import { InlineFieldRow, InlineField, Input, Text, Icon, AsyncSelect } from '@grafana/ui';
+import { QueryEditorProps, SelectableValue } from '@grafana/data';
 import { DataSource } from '../datasource';
 import { EdgeDataSourceOptions, EdgeQuery } from '../types';
+import { getTopicError } from '../topicValidation';
 
 type AutocompleteStatus = 'loading' | 'ready' | 'no_token' | 'unauthorized' | 'unreachable';
+type SearchHint = 'none' | 'short' | 'nomatch';
 
 type Props = QueryEditorProps<DataSource, EdgeQuery, EdgeDataSourceOptions>;
 
-const EMPTY_OPTIONS: Array<ComboboxOption<string>> = [];
-
 export function QueryEditor({ query, onChange, onRunQuery, datasource }: Props) {
-  const [touched, setTouched] = useState(!!query.topic);
-  const topicError = useMemo(() => (touched ? getTopicError(query.topic || '') : ''), [touched, query.topic]);
+  const topicError = useMemo(() => getTopicError(query.topic || ''), [query.topic]);
   const [autocompleteStatus, setAutocompleteStatus] = useState<AutocompleteStatus>('loading');
+  const [searchHint, setSearchHint] = useState<SearchHint>('none');
+  const [probeKey, setProbeKey] = useState(0);
 
-  // Probe on mount to detect API token status.
+  const queryRef = useRef(query);
+  useEffect(() => {
+    queryRef.current = query;
+  });
+
+  const requestIdRef = useRef(0);
+  const cachedTopicsRef = useRef<string[]>([]);
+
+  useEffect(() => {
+    cachedTopicsRef.current = [];
+  }, [datasource, probeKey]);
+
+  // Probe to detect API token status. Runs on mount and on retry.
   useEffect(() => {
     let cancelled = false;
     datasource
@@ -40,93 +53,119 @@ export function QueryEditor({ query, onChange, onRunQuery, datasource }: Props) 
     return () => {
       cancelled = true;
     };
-  }, [datasource]);
+  }, [datasource, probeKey]);
 
-  // Use a ref so the callback always sees the latest query without needing it as a dep.
-  const queryRef = useRef(query);
-  useEffect(() => {
-    queryRef.current = query;
-  });
+  const retryProbe = useCallback(() => {
+    setAutocompleteStatus('loading');
+    setProbeKey((k) => k + 1);
+  }, []);
+
+  const onInputChange = useCallback(
+    (e: React.FormEvent<HTMLInputElement>) => {
+      onChange({ ...queryRef.current, topic: e.currentTarget.value });
+    },
+    [onChange]
+  );
+
+  const onSelectInputChange = useCallback(
+    (value: string, actionMeta: { action: string }) => {
+      if (actionMeta.action === 'input-change') {
+        onChange({ ...queryRef.current, topic: value });
+      }
+    },
+    [onChange]
+  );
 
   const onTopicSelect = useCallback(
-    (option: ComboboxOption<string>) => {
-      setTouched(true);
-      onChange({ ...queryRef.current, topic: option.value });
-      onRunQuery();
+    (item: SelectableValue<string>) => {
+      const nextTopic = item.value ?? '';
+      onChange({ ...queryRef.current, topic: nextTopic });
+      if (!getTopicError(nextTopic)) {
+        onRunQuery();
+      }
     },
     [onChange, onRunQuery]
   );
 
-  const requestIdRef = useRef(0);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
-  const pendingResolveRef = useRef<((v: Array<ComboboxOption<string>>) => void) | null>(null);
-
-  // Clean up on unmount: cancel debounce and invalidate in-flight requests.
-  useEffect(() => {
-    const refs = { timeout: timeoutRef, requestId: requestIdRef, pendingResolve: pendingResolveRef };
-    return () => {
-      clearTimeout(refs.timeout.current);
-      refs.requestId.current++;
-      if (refs.pendingResolve.current) {
-        refs.pendingResolve.current([]);
-        refs.pendingResolve.current = null;
-      }
-    };
-  }, []);
-
-  const loadOptions = useMemo(() => {
-    if (autocompleteStatus !== 'ready') {
-      return [];
+  const onInputBlur = useCallback(() => {
+    if (!getTopicError(queryRef.current.topic || '')) {
+      onRunQuery();
     }
+  }, [onRunQuery]);
 
-    return (inputValue: string): Promise<Array<ComboboxOption<string>>> => {
-      // Resolve the previous Promise so Combobox never waits on an orphan.
-      if (pendingResolveRef.current) {
-        pendingResolveRef.current([]);
-        pendingResolveRef.current = null;
-      }
-      clearTimeout(timeoutRef.current);
-
+  const loadTopicOptions = useCallback(
+    async (inputValue: string): Promise<Array<SelectableValue<string>>> => {
       if (inputValue.length < 2) {
-        return Promise.resolve(EMPTY_OPTIONS);
+        setSearchHint(inputValue.length === 0 ? 'none' : 'short');
+        requestIdRef.current++;
+        return [];
       }
 
       const currentRequestId = ++requestIdRef.current;
+      try {
+        const response = await datasource.searchTopics(inputValue);
 
-      return new Promise((resolve) => {
-        pendingResolveRef.current = resolve;
+        if (currentRequestId !== requestIdRef.current) {
+          return [];
+        }
 
-        timeoutRef.current = setTimeout(async () => {
-          // Timer fired — this resolve is no longer "pending a debounce".
-          pendingResolveRef.current = null;
-
-          try {
-            const response = await datasource.searchTopics(inputValue);
-
-            // Discard stale response if a newer request was fired.
-            if (currentRequestId !== requestIdRef.current) {
-              resolve([]);
-              return;
-            }
-
-            if (response.error) {
-              // Only 'unauthorized' is permanent — disable autocomplete.
-              // 'unreachable' is transient — keep alive for next keystroke.
-              if (response.error === 'unauthorized') {
-                setAutocompleteStatus('unauthorized');
-              }
-              resolve([]);
-              return;
-            }
-
-            resolve(response.topics.map((t) => ({ value: t, label: t })));
-          } catch {
-            resolve([]);
+        if (response.error) {
+          if (response.error === 'unauthorized') {
+            setAutocompleteStatus('unauthorized');
+          } else if (response.error === 'unreachable') {
+            setAutocompleteStatus('unreachable');
           }
-        }, 300);
-      });
-    };
-  }, [datasource, autocompleteStatus]);
+          setSearchHint('none');
+          return [];
+        }
+
+        if (response.topics.length > 0) {
+          const seen = new Set(cachedTopicsRef.current);
+          for (const topic of response.topics) {
+            if (!seen.has(topic)) {
+              seen.add(topic);
+              cachedTopicsRef.current.push(topic);
+            }
+          }
+          if (cachedTopicsRef.current.length > 200) {
+            cachedTopicsRef.current = cachedTopicsRef.current.slice(-200);
+          }
+          setSearchHint('none');
+          return response.topics.map((topic) => ({ value: topic, label: topic }));
+        }
+
+        const needle = inputValue.toLowerCase();
+        const localCandidates = new Set<string>(cachedTopicsRef.current);
+        if (queryRef.current.topic) {
+          localCandidates.add(queryRef.current.topic);
+        }
+        const localMatches = Array.from(localCandidates).filter((topic) => topic.toLowerCase().includes(needle));
+        if (localMatches.length > 0) {
+          setSearchHint('none');
+          return localMatches.slice(0, 15).map((topic) => ({ value: topic, label: topic }));
+        }
+
+        setSearchHint('nomatch');
+        return [];
+      } catch {
+        if (currentRequestId !== requestIdRef.current) {
+          return [];
+        }
+        setAutocompleteStatus('unreachable');
+        setSearchHint('none');
+        return [];
+      }
+    },
+    [datasource]
+  );
+
+  const isAutocompleteReady = autocompleteStatus === 'ready';
+  const noOptionsMessage =
+    searchHint === 'short'
+      ? 'Start typing to see topics from Edge'
+      : searchHint === 'nomatch'
+        ? 'No topics match your search'
+        : 'Start typing to see topics from Edge';
 
   return (
     <>
@@ -140,64 +179,68 @@ export function QueryEditor({ query, onChange, onRunQuery, datasource }: Props) 
           interactive
           tooltip={<TopicTooltip />}
         >
-          <Combobox<string>
-            options={loadOptions}
-            value={query.topic || null}
-            onChange={onTopicSelect}
-            createCustomValue
-            placeholder="e.g. devicehub.alias.demo.sensor_name"
-          />
+          {isAutocompleteReady ? (
+            <AsyncSelect<string>
+              placeholder="Search for a topic..."
+              value={query.topic ? { value: query.topic, label: query.topic } : null}
+              loadOptions={loadTopicOptions}
+              onInputChange={onSelectInputChange}
+              onChange={onTopicSelect}
+              onBlur={onInputBlur}
+              noOptionsMessage={noOptionsMessage}
+              defaultOptions={false}
+              allowCustomValue={false}
+              isClearable={false}
+              openMenuOnFocus={false}
+              closeMenuOnSelect
+              blurInputOnSelect={false}
+              maxMenuHeight={200}
+            />
+          ) : (
+            <Input
+              name="topic"
+              required
+              value={query.topic ?? ''}
+              onChange={onInputChange}
+              onBlur={onInputBlur}
+              placeholder="e.g. devicehub.alias.demo.sensor_name"
+              loading={autocompleteStatus === 'loading'}
+            />
+          )}
         </InlineField>
       </InlineFieldRow>
 
-      <AutocompleteHint status={autocompleteStatus} />
+      <AutocompleteHint status={autocompleteStatus} onRetry={retryProbe} />
     </>
   );
 }
 
-function AutocompleteHint({ status }: { status: AutocompleteStatus }) {
+function AutocompleteHint({ status, onRetry }: { status: AutocompleteStatus; onRetry: () => void }) {
   if (status === 'no_token') {
     return (
-      <Text element="p" variant="bodySmall" color="secondary" italic>
-        <Icon name="info-circle" size="sm" /> Tip: add an API Token in datasource settings to enable topic
-        autocomplete.
+      <Text element="p" variant="bodySmall" color="secondary">
+        <Icon name="info-circle" size="sm" /> Add an API token in datasource settings to enable autocomplete.
       </Text>
     );
   }
   if (status === 'unauthorized') {
     return (
       <Text element="p" variant="bodySmall" color="warning">
-        <Icon name="exclamation-triangle" size="sm" /> Topic autocomplete unavailable — API token may be invalid or
-        expired.
+        <Icon name="exclamation-triangle" size="sm" /> Autocomplete unavailable: API token is invalid or expired.
       </Text>
     );
   }
   if (status === 'unreachable') {
     return (
       <Text element="p" variant="bodySmall" color="warning">
-        <Icon name="exclamation-triangle" size="sm" /> Topic autocomplete unavailable — could not reach the Edge API.
+        <Icon name="exclamation-triangle" size="sm" /> Autocomplete unavailable: could not reach Edge API.{' '}
+        <button type="button" onClick={onRetry}>
+          Retry
+        </button>
       </Text>
     );
   }
   return null;
-}
-
-function getTopicError(subject: string): string {
-  if (!subject || subject === '') {
-    return 'Topic is required';
-  }
-
-  const tokens = subject.split('.');
-  if (tokens.some((token) => token === '>' || token === '*')) {
-    return 'Wildcards are not allowed';
-  }
-
-  const isValidToken = (token: string): boolean => /^[^\s.]+$/.test(token);
-  if (!tokens.every(isValidToken)) {
-    return `Invalid topic: [${subject}]`;
-  }
-
-  return '';
 }
 
 const TopicTooltip = () => (
@@ -206,8 +249,7 @@ const TopicTooltip = () => (
       <b>NATS topic to subscribe to</b>
     </p>
     <p>
-      The dot-separated subject published by Litmus Edge, e.g.{' '}
-      <code>devicehub.alias.demo.sensor_name</code>
+      The dot-separated subject published by Litmus Edge, e.g. <code>devicehub.alias.demo.sensor_name</code>
     </p>
     <p>
       <a target="_blank" rel="noreferrer" href="https://docs.litmus.io/litmusedge/product-features/devicehub/tags">
