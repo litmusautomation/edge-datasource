@@ -1,11 +1,20 @@
 import { test, expect } from '@grafana/plugin-e2e';
+import type { Page } from '@playwright/test';
+
+async function getTopicInput(page: Page) {
+  const topicInput = page.locator('[role="combobox"], input[name="topic"]').first();
+  await expect(topicInput).toBeVisible({ timeout: 15000 });
+  return topicInput;
+}
 
 test.describe('Query editor', () => {
   test('renders topic field in explore', async ({ explorePage, page }) => {
     await explorePage.datasource.set('Litmus Edge');
 
     await expect(page.getByText('Topic', { exact: true })).toBeVisible();
-    await expect(page.getByPlaceholder('e.g. "enterprise.site.area.line.machine.sensor"')).toBeVisible();
+
+    const topicInput = await getTopicInput(page);
+    await expect(topicInput).toBeVisible();
   });
 
   test('shows validation error for empty topic', async ({ explorePage, page }) => {
@@ -18,7 +27,7 @@ test.describe('Query editor', () => {
   test('shows validation error for wildcard topic', async ({ explorePage, page }) => {
     await explorePage.datasource.set('Litmus Edge');
 
-    const topicInput = page.getByPlaceholder('e.g. "enterprise.site.area.line.machine.sensor"');
+    const topicInput = await getTopicInput(page);
     await topicInput.fill('device.*.temperature');
 
     await expect(page.getByText('Wildcards are not allowed')).toBeVisible();
@@ -27,7 +36,7 @@ test.describe('Query editor', () => {
   test('shows validation error for invalid topic tokens', async ({ explorePage, page }) => {
     await explorePage.datasource.set('Litmus Edge');
 
-    const topicInput = page.getByPlaceholder('e.g. "enterprise.site.area.line.machine.sensor"');
+    const topicInput = await getTopicInput(page);
     await topicInput.fill('device..temperature');
 
     await expect(page.getByText(/Invalid topic:/)).toBeVisible();
@@ -36,10 +45,27 @@ test.describe('Query editor', () => {
   test('clears validation error for valid topic', async ({ explorePage, page }) => {
     await explorePage.datasource.set('Litmus Edge');
 
-    const topicInput = page.getByPlaceholder('e.g. "enterprise.site.area.line.machine.sensor"');
+    const topicInput = await getTopicInput(page);
     await topicInput.fill('enterprise.site.area.line.cell.tag');
 
     await expect(page.getByText('Topic is required')).not.toBeVisible();
     await expect(page.getByText('Wildcards are not allowed')).not.toBeVisible();
+  });
+
+  test('keeps value while editing selected topic', async ({ explorePage, page }) => {
+    await explorePage.datasource.set('Litmus Edge');
+
+    const full = 'devicehub.alias.P1_L1_Machine3_1_S7.Temperature';
+    const partial = 'devicehub.alias.P1_L1_Machine3_1_S7.Temperat';
+
+    const topicInput = await getTopicInput(page);
+    await topicInput.fill(full);
+    await expect(page.getByText('Topic is required')).not.toBeVisible();
+
+    await topicInput.click({ force: true });
+    await expect(page.getByText('Topic is required')).not.toBeVisible();
+
+    await topicInput.fill(partial);
+    await expect(topicInput).toHaveValue(partial);
   });
 });

@@ -6,7 +6,7 @@ test.describe('Config editor', () => {
 
     await expect(page.getByText('Type: Litmus Edge', { exact: true })).toBeVisible();
     await expect(page.getByText('Hostname *', { exact: true })).toBeVisible();
-    await expect(page.getByText('Token *', { exact: true })).toBeVisible();
+    await expect(page.getByText('Access Account Token *', { exact: true })).toBeVisible();
   });
 
   test('save & test fails with empty fields', async ({ createDataSourceConfigPage, page }) => {
@@ -20,8 +20,8 @@ test.describe('Config editor', () => {
   test('save & test fails with invalid credentials', async ({ createDataSourceConfigPage, page }) => {
     const configPage = await createDataSourceConfigPage({ type: 'litmus-edge-datasource' });
 
-    await page.getByPlaceholder('127.0.0.1').fill('192.168.0.999');
-    await page.getByPlaceholder('auth token').fill('invalid-token');
+    await page.getByPlaceholder('192.168.1.100').fill('192.168.0.999');
+    await page.getByPlaceholder('Access Account token').fill('invalid-token');
 
     await configPage.saveAndTest();
 
