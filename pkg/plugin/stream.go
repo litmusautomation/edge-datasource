@@ -8,7 +8,6 @@ import (
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/tracing"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
-	"github.com/litmus/edge/pkg/edge"
 )
 
 // SubscribeStream just returns an ok in this case, since we will always allow the user to successfully connect.
@@ -52,32 +51,27 @@ func (ds *EdgeDatasource) RunStream(ctx context.Context, req *backend.RunStreamR
 	// Create a ticker to send data frames at the specified interval
 	// TODO: Make the interval configurable
 	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ctx.Done():
 			logger.Debug("Stopped streaming (context canceled)", "path", req.Path)
-			ticker.Stop()
 			return nil
 		case <-ticker.C:
-			// Get the topic
 			topic, ok := ds.Client.GetTopic(req.Path)
 			if !ok {
 				logger.Debug("Topic not found", "path", req.Path)
 				break
 			}
 
-			// Convert the topic messages to a data frame
-			frame, err := topic.ToDataFrame()
+			msgs := topic.DrainMessages()
+			frame, err := topic.ToDataFrame(msgs)
 			if err != nil {
 				logger.Error("Failed to convert topic to data frame", "path", req.Path, "error", backend.DownstreamError(err))
 				break
 			}
 
-			// Clear the topic Map
-			topic.Messages = []edge.Message{}
-
-			// Send the frame
 			if err := sender.SendFrame(frame, data.IncludeAll); err != nil {
 				logger.Error("Failed to send data frame", "path", req.Path, "error", backend.DownstreamError(err))
 			}
