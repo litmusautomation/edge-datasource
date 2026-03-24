@@ -187,11 +187,15 @@ type DHMessage struct {
 	Description string      `json:"description"`
 }
 
+// isDHMessage returns true if the parsed message has the required DeviceHub fields.
+func isDHMessage(dh DHMessage) bool {
+	return dh.TagName != "" && dh.Timestamp != 0 && dh.DeviceId != ""
+}
+
 // MessageWrapper is a wrapper for the NATS message
 func (c *client) MessageWrapper(msg *nats.Msg) Message {
 	var dhMessage DHMessage
-	err := json.Unmarshal(msg.Data, &dhMessage)
-	if err != nil {
+	if err := json.Unmarshal(msg.Data, &dhMessage); err != nil || !isDHMessage(dhMessage) {
 		return c.createMessageFromRawData(msg)
 	}
 

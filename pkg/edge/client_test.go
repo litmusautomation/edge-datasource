@@ -114,11 +114,12 @@ func TestMessageWrapper_DHMessage(t *testing.T) {
 }
 
 func TestMessageWrapper_DHMessage_PartialLabels(t *testing.T) {
-	// Only tagName and timestamp set — other labels should be absent.
+	// Only required fields (tagName, timestamp, deviceId) set — optional labels absent.
 	c := &client{}
 	payload := DHMessage{
 		TagName:   "humidity",
 		Timestamp: 1700000000000,
+		DeviceId:  "dev-001",
 		Value:     65.0,
 	}
 	natsMsg := &nats.Msg{
@@ -131,14 +132,13 @@ func TestMessageWrapper_DHMessage_PartialLabels(t *testing.T) {
 	assert.Equal(t, "humidity", msg.FieldName)
 	assert.Equal(t, "topic.humidity", msg.Labels["topic"])
 	assert.Equal(t, "humidity", msg.Labels["tagName"])
-	// Empty fields should NOT appear in labels.
+	assert.Equal(t, "dev-001", msg.Labels["deviceId"])
+	// Optional fields should NOT appear in labels.
 	_, hasDatatype := msg.Labels["datatype"]
-	_, hasDeviceId := msg.Labels["deviceId"]
 	_, hasDeviceName := msg.Labels["deviceName"]
 	_, hasDescription := msg.Labels["description"]
 	_, hasRegisterId := msg.Labels["registerId"]
 	assert.False(t, hasDatatype)
-	assert.False(t, hasDeviceId)
 	assert.False(t, hasDeviceName)
 	assert.False(t, hasDescription)
 	assert.False(t, hasRegisterId)
@@ -149,6 +149,7 @@ func TestMessageWrapper_DHMessage_StringValue(t *testing.T) {
 	payload := DHMessage{
 		TagName:   "status",
 		Timestamp: 1700000000000,
+		DeviceId:  "dev-001",
 		Value:     "running",
 	}
 	natsMsg := &nats.Msg{
@@ -167,6 +168,7 @@ func TestMessageWrapper_DHMessage_BoolValue(t *testing.T) {
 	payload := DHMessage{
 		TagName:   "alarm",
 		Timestamp: 1700000000000,
+		DeviceId:  "dev-001",
 		Value:     true,
 	}
 	natsMsg := &nats.Msg{
@@ -181,36 +183,61 @@ func TestMessageWrapper_DHMessage_BoolValue(t *testing.T) {
 }
 
 func TestMessageWrapper_NonDH_JSON_WithTimestamp(t *testing.T) {
-	// Any valid JSON successfully unmarshals into DHMessage (missing fields zero out),
-	// so this takes the DH path — FieldName is empty (no tagName), Value is the
-	// json.Marshal of the zero-valued "value" field (null).
+	// Valid JSON but missing required DH fields (tagName, deviceId) —
+	// should take the raw data path and extract the timestamp.
 	c := &client{}
+	raw := []byte(`{"timestamp": 1700000000000, "sensor": "temp", "reading": 22.5}`)
 	natsMsg := &nats.Msg{
 		Subject: "custom.topic",
-		Data:    []byte(`{"timestamp": 1700000000000, "sensor": "temp", "reading": 22.5}`),
+		Data:    raw,
 	}
 
 	msg := c.MessageWrapper(natsMsg)
 
-	// Goes through DH path: tagName is "" so FieldName is "".
-	assert.Equal(t, "", msg.FieldName)
+	assert.Equal(t, "custom.topic", msg.FieldName)
 	assert.Equal(t, time.UnixMilli(1700000000000), msg.Timestamp)
-	assert.Equal(t, "custom.topic", msg.Labels["topic"])
+	assert.Equal(t, raw, msg.Value)
+	assert.Equal(t, data.Labels{}, msg.Labels)
 }
 
 func TestMessageWrapper_NonDH_JSON_NoTimestamp(t *testing.T) {
-	// Valid JSON without DH fields — still takes DH path, timestamp is epoch.
+	// Valid JSON without DH fields or timestamp — raw path.
+	// getTimestampFromMessageData unmarshals successfully with Timestamp=0,
+	// so we get epoch time (not time.Now()).
 	c := &client{}
+	raw := []byte(`{"sensor": "temp", "reading": 22.5}`)
 	natsMsg := &nats.Msg{
 		Subject: "custom.topic",
-		Data:    []byte(`{"sensor": "temp", "reading": 22.5}`),
+		Data:    raw,
 	}
 
 	msg := c.MessageWrapper(natsMsg)
 
-	assert.Equal(t, "", msg.FieldName)
-	assert.Equal(t, time.UnixMilli(0), msg.Timestamp, "zero timestamp → epoch")
-	assert.Equal(t, "custom.topic", msg.Labels["topic"])
+	assert.Equal(t, "custom.topic", msg.FieldName)
+	assert.Equal(t, time.UnixMilli(0), msg.Timestamp, "valid JSON without timestamp → epoch")
+	assert.Equal(t, raw, msg.Value)
+	assert.Equal(t, data.Labels{}, msg.Labels)
+}
+
+func TestMessageWrapper_MissingOneRequiredDHField(t *testing.T) {
+	// Has tagName and timestamp but no deviceId — should fall to raw path.
+	c := &client{}
+	raw := mustJSON(t, DHMessage{
+		TagName:   "temperature",
+		Timestamp: 1700000000000,
+		Value:     22.5,
+	})
+	natsMsg := &nats.Msg{
+		Subject: "topic.temp",
+		Data:    raw,
+	}
+
+	msg := c.MessageWrapper(natsMsg)
+
+	// Raw path: FieldName is the NATS subject, not tagName.
+	assert.Equal(t, "topic.temp", msg.FieldName)
+	assert.Equal(t, time.UnixMilli(1700000000000), msg.Timestamp)
+	assert.Equal(t, data.Labels{}, msg.Labels)
 }
 
 func TestMessageWrapper_InvalidJSON(t *testing.T) {
