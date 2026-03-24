@@ -66,6 +66,10 @@ func (ds *EdgeDatasource) RunStream(ctx context.Context, req *backend.RunStreamR
 			}
 
 			msgs := topic.DrainMessages()
+			if len(msgs) == 0 {
+				break
+			}
+
 			frame, err := topic.ToDataFrame(msgs)
 			if err != nil {
 				logger.Error("Failed to convert topic to data frame", "path", req.Path, "error", backend.DownstreamError(err))
