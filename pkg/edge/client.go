@@ -219,7 +219,7 @@ func (c *client) getTimestampFromMessageData(data []byte) time.Time {
 	}
 	var v hasTime
 	err := json.Unmarshal(data, &v)
-	if err == nil {
+	if err == nil && v.Timestamp != 0 {
 		return time.UnixMilli(v.Timestamp)
 	}
 

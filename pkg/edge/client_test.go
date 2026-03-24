@@ -201,9 +201,7 @@ func TestMessageWrapper_NonDH_JSON_WithTimestamp(t *testing.T) {
 }
 
 func TestMessageWrapper_NonDH_JSON_NoTimestamp(t *testing.T) {
-	// Valid JSON without DH fields or timestamp — raw path.
-	// getTimestampFromMessageData unmarshals successfully with Timestamp=0,
-	// so we get epoch time (not time.Now()).
+	// Valid JSON without DH fields or timestamp — raw path, time.Now().
 	c := &client{}
 	raw := []byte(`{"sensor": "temp", "reading": 22.5}`)
 	natsMsg := &nats.Msg{
@@ -211,10 +209,13 @@ func TestMessageWrapper_NonDH_JSON_NoTimestamp(t *testing.T) {
 		Data:    raw,
 	}
 
+	before := time.Now()
 	msg := c.MessageWrapper(natsMsg)
+	after := time.Now()
 
 	assert.Equal(t, "custom.topic", msg.FieldName)
-	assert.Equal(t, time.UnixMilli(0), msg.Timestamp, "valid JSON without timestamp → epoch")
+	assert.True(t, !msg.Timestamp.Before(before) && !msg.Timestamp.After(after),
+		"missing timestamp should use time.Now()")
 	assert.Equal(t, raw, msg.Value)
 	assert.Equal(t, data.Labels{}, msg.Labels)
 }
@@ -265,6 +266,7 @@ func TestMessageWrapper_EmptySubject(t *testing.T) {
 	payload := DHMessage{
 		TagName:   "tag",
 		Timestamp: 1700000000000,
+		DeviceId:  "dev-001",
 		Value:     1,
 	}
 	natsMsg := &nats.Msg{
@@ -286,16 +288,18 @@ func TestGetTimestampFromMessageData(t *testing.T) {
 		assert.Equal(t, time.UnixMilli(1700000000000), ts)
 	})
 
-	t.Run("zero timestamp", func(t *testing.T) {
+	t.Run("zero timestamp falls back to now", func(t *testing.T) {
+		before := time.Now()
 		ts := c.getTimestampFromMessageData([]byte(`{"timestamp": 0}`))
-		assert.Equal(t, time.UnixMilli(0), ts)
+		after := time.Now()
+		assert.True(t, !ts.Before(before) && !ts.After(after))
 	})
 
-	t.Run("no timestamp field", func(t *testing.T) {
-		// Valid JSON without "timestamp" unmarshals with Timestamp=0 (no error),
-		// so we get epoch time, not time.Now().
+	t.Run("no timestamp field falls back to now", func(t *testing.T) {
+		before := time.Now()
 		ts := c.getTimestampFromMessageData([]byte(`{"value": 42}`))
-		assert.Equal(t, time.UnixMilli(0), ts)
+		after := time.Now()
+		assert.True(t, !ts.Before(before) && !ts.After(after))
 	})
 
 	t.Run("invalid JSON", func(t *testing.T) {
