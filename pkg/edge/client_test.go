@@ -260,6 +260,40 @@ func TestMessageWrapper_InvalidJSON(t *testing.T) {
 	assert.Equal(t, data.Labels{}, msg.Labels)
 }
 
+func TestMessageWrapper_NilData(t *testing.T) {
+	c := &client{}
+	natsMsg := &nats.Msg{
+		Subject: "nil.topic",
+		Data:    nil,
+	}
+
+	before := time.Now()
+	msg := c.MessageWrapper(natsMsg)
+	after := time.Now()
+
+	assert.Equal(t, "nil.topic", msg.FieldName)
+	assert.True(t, !msg.Timestamp.Before(before) && !msg.Timestamp.After(after))
+	assert.Nil(t, msg.Value)
+	assert.Equal(t, data.Labels{}, msg.Labels)
+}
+
+func TestMessageWrapper_EmptyData(t *testing.T) {
+	c := &client{}
+	natsMsg := &nats.Msg{
+		Subject: "empty.topic",
+		Data:    []byte{},
+	}
+
+	before := time.Now()
+	msg := c.MessageWrapper(natsMsg)
+	after := time.Now()
+
+	assert.Equal(t, "empty.topic", msg.FieldName)
+	assert.True(t, !msg.Timestamp.Before(before) && !msg.Timestamp.After(after))
+	assert.Equal(t, []byte{}, msg.Value)
+	assert.Equal(t, data.Labels{}, msg.Labels)
+}
+
 func TestMessageWrapper_EmptySubject(t *testing.T) {
 	// DH message with empty NATS subject — "topic" label should not be set.
 	c := &client{}

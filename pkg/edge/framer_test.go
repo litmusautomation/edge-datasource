@@ -185,6 +185,28 @@ func TestFramer(t *testing.T) {
 		assert.Equal(t, 1, frame.Fields[0].Len())
 	})
 
+	t.Run("nil value bytes", func(t *testing.T) {
+		f := newFramer()
+		// Nil Value (e.g. from a NATS message with nil Data) should be
+		// skipped by the framer, not panic.
+		frame, err := f.toFrame([]Message{
+			{FieldName: "tag", Timestamp: fixedTime, Value: nil},
+			msg("tag", map[string]interface{}{"temperature": 22.5}),
+		})
+		require.NoError(t, err)
+		assert.Equal(t, 1, frame.Fields[0].Len(), "nil value message should be skipped")
+	})
+
+	t.Run("empty value bytes", func(t *testing.T) {
+		f := newFramer()
+		frame, err := f.toFrame([]Message{
+			{FieldName: "tag", Timestamp: fixedTime, Value: []byte{}},
+			msg("tag", map[string]interface{}{"temperature": 22.5}),
+		})
+		require.NoError(t, err)
+		assert.Equal(t, 1, frame.Fields[0].Len(), "empty value message should be skipped")
+	})
+
 	t.Run("changing field type", func(t *testing.T) {
 		// Field starts as float, then receives a string — second value
 		// should be silently dropped (type mismatch logged).
