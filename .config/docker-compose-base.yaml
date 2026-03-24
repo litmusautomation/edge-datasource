@@ -24,9 +24,10 @@ services:
       - ..:/root/litmus-edge-datasource
 
     environment:
-      # Passed into provisioning YAML (${LITMUS_EDGE_HOSTNAME} / ${LITMUS_EDGE_TOKEN})
       LITMUS_EDGE_HOSTNAME: ${LITMUS_EDGE_HOSTNAME:-}
       LITMUS_EDGE_TOKEN: ${LITMUS_EDGE_TOKEN:-}
+      MQTT_BROKER_URI: ${MQTT_BROKER_URI:-}
+      GF_INSTALL_PLUGINS: grafana-mqtt-datasource
       NODE_ENV: development
       GF_LOG_FILTERS: plugin.litmus-edge-datasource:debug
       GF_LOG_LEVEL: debug
