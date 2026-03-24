@@ -1,5 +1,5 @@
-import React, { ChangeEvent, useCallback } from 'react';
-import { InlineField, Input } from '@grafana/ui';
+import React, { useCallback } from 'react';
+import { InlineFieldRow, InlineField, Input } from '@grafana/ui';
 import { QueryEditorProps } from '@grafana/data';
 import { DataSource } from '../datasource';
 import { EdgeDataSourceOptions, EdgeQuery } from '../types';
@@ -7,38 +7,36 @@ import { EdgeDataSourceOptions, EdgeQuery } from '../types';
 type Props = QueryEditorProps<DataSource, EdgeQuery, EdgeDataSourceOptions>;
 
 export function QueryEditor({ query, onChange, onRunQuery }: Props) {
-  const { topic } = query;
+  const topicError = getTopicError(query.topic || '');
 
   const onTopicChange = useCallback(
-    (event: ChangeEvent<HTMLInputElement>) => {
-      onChange({ ...query, topic: event.target.value });
+    (event: React.FormEvent<HTMLInputElement>) => {
+      onChange({ ...query, topic: event.currentTarget.value });
     },
     [onChange, query]
   );
 
-  const ExecuteQuery = useCallback(() => {
-    const error = getTopicError(topic || '');
-    if (error) {
-      console.log(error);
-      return;
-    }
-    onRunQuery();
-  }, [onRunQuery, topic]);
-
-  const topicError = getTopicError(topic || '');
-
   return (
-    <div className="gf-form">
-      <InlineField label="Topic" grow interactive tooltip={TooltipContent} error={topicError} invalid={!!topicError}>
+    <InlineFieldRow>
+      <InlineField
+        label="Topic"
+        labelWidth={8}
+        grow
+        error={topicError}
+        invalid={!!topicError}
+        interactive
+        tooltip={<TopicTooltip />}
+      >
         <Input
+          name="topic"
           required
           placeholder='e.g. "enterprise.site.area.line.machine.sensor"'
-          value={topic}
-          onBlur={ExecuteQuery}
+          value={query.topic}
+          onBlur={onRunQuery}
           onChange={onTopicChange}
         />
       </InlineField>
-    </div>
+    </InlineFieldRow>
   );
 }
 
@@ -48,23 +46,19 @@ function getTopicError(subject: string): string {
   }
 
   const tokens = subject.split('.');
-  const hasInvalidTokens = tokens.some((token) => token === '>' || token === '*');
-
-  if (hasInvalidTokens) {
+  if (tokens.some((token) => token === '>' || token === '*')) {
     return 'Wildcards are not allowed';
   }
 
   const isValidToken = (token: string): boolean => /^[^\s.]+$/.test(token);
-  const success = tokens.every(isValidToken);
-
-  if (!success) {
+  if (!tokens.every(isValidToken)) {
     return `Invalid topic: [${subject}]`;
   }
 
   return '';
 }
 
-const TooltipContent = () => (
+const TopicTooltip = () => (
   <div>
     <p>
       <b>Topic to subscribe to</b>
