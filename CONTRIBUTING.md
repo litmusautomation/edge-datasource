@@ -17,7 +17,7 @@ The project uses [Grafana Plugin Tools](https://grafana.com/developers/plugin-to
 npm install
 
 cp .env.example .env
-# Fill in LITMUS_EDGE_HOSTNAME and LITMUS_EDGE_TOKEN
+# Fill in LITMUS_EDGE_HOSTNAME and LITMUS_EDGE_ACCESS_ACCOUNT_TOKEN
 # so the provisioned datasource can reach Litmus Edge via Docker
 ```
 

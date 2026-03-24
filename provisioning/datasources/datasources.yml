@@ -14,14 +14,5 @@ datasources:
     jsonData:
       hostname: ${LITMUS_EDGE_HOSTNAME}
     secureJsonData:
-      token: ${LITMUS_EDGE_TOKEN}
-
-  - name: 'MQTT (Litmus broker)'
-    type: grafana-mqtt-datasource
-    access: proxy
-    isDefault: false
-    orgId: 1
-    version: 1
-    editable: true
-    jsonData:
-      uri: ${MQTT_BROKER_URI}
+      token: ${LITMUS_EDGE_ACCESS_ACCOUNT_TOKEN}
+      apiToken: ${LITMUS_EDGE_API_TOKEN}
