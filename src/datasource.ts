@@ -9,7 +9,7 @@ import {
 } from '@grafana/data';
 import { DataSourceWithBackend, getGrafanaLiveSrv, getTemplateSrv } from '@grafana/runtime';
 
-import { EdgeQuery, EdgeDataSourceOptions, DEFAULT_QUERY } from './types';
+import { EdgeQuery, EdgeDataSourceOptions, TopicSearchResponse, DEFAULT_QUERY } from './types';
 import { Observable, merge, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { defaults } from 'lodash';
@@ -56,6 +56,10 @@ export class DataSource extends DataSourceWithBackend<EdgeQuery, EdgeDataSourceO
 
   getDefaultQuery(_: CoreApp): Partial<EdgeQuery> {
     return DEFAULT_QUERY;
+  }
+
+  async searchTopics(query: string): Promise<TopicSearchResponse> {
+    return this.getResource<TopicSearchResponse>('topics', { query });
   }
 
   filterQuery(query: EdgeQuery): boolean {

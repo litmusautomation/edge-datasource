@@ -5,9 +5,12 @@ import { EdgeDataSourceOptions, EdgeQuery } from './types';
 const mockReplace = jest.fn((value: string | undefined) => value ?? '');
 const mockGetDataStream = jest.fn();
 
+const mockGetResource = jest.fn();
+
 jest.mock('@grafana/runtime', () => ({
   DataSourceWithBackend: class {
     uid = 'test-uid';
+    getResource = mockGetResource;
   },
   getGrafanaLiveSrv: () => ({ getDataStream: mockGetDataStream }),
   getTemplateSrv: () => ({ replace: mockReplace }),
@@ -69,5 +72,31 @@ describe('DataSource.applyTemplateVariables', () => {
     mockReplace.mockReturnValueOnce('');
     const result = ds.applyTemplateVariables({ refId: 'A' } as EdgeQuery, {});
     expect(result.topic).toBe('');
+  });
+});
+
+describe('DataSource.searchTopics', () => {
+  let ds: DataSource;
+
+  beforeEach(() => {
+    ds = makeDs();
+    mockGetResource.mockClear();
+  });
+
+  it('calls getResource with correct path and params', async () => {
+    const expected = { topics: ['topic.a'], error: undefined };
+    mockGetResource.mockResolvedValueOnce(expected);
+
+    const result = await ds.searchTopics('temp');
+    expect(mockGetResource).toHaveBeenCalledWith('topics', { query: 'temp' });
+    expect(result).toEqual(expected);
+  });
+
+  it('passes empty query string', async () => {
+    mockGetResource.mockResolvedValueOnce({ topics: [], error: 'api_token_not_configured' });
+
+    const result = await ds.searchTopics('');
+    expect(mockGetResource).toHaveBeenCalledWith('topics', { query: '' });
+    expect(result.error).toBe('api_token_not_configured');
   });
 });

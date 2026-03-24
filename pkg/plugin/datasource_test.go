@@ -48,17 +48,46 @@ func (m *mockClient) Dispose() {
 }
 
 func TestCheckHealth_Connected(t *testing.T) {
-	ds := NewEdgeDatasource(newMockClient(true), "uid")
+	ds := NewEdgeDatasource(newMockClient(true), "uid", nil)
 	res, err := ds.CheckHealth(context.Background(), &backend.CheckHealthRequest{})
 	require.NoError(t, err)
 	assert.Equal(t, backend.HealthStatusOk, res.Status)
+	assert.Contains(t, res.Message, "Connected to the Edge")
 }
 
 func TestCheckHealth_Disconnected(t *testing.T) {
-	ds := NewEdgeDatasource(newMockClient(false), "uid")
+	ds := NewEdgeDatasource(newMockClient(false), "uid", nil)
+	res, err := ds.CheckHealth(context.Background(), &backend.CheckHealthRequest{})
+	require.NoError(t, err)
+	assert.Contains(t, res.Message, "NATS Proxy is enabled")
+	assert.Equal(t, backend.HealthStatusError, res.Status)
+}
+
+func TestCheckHealth_DeviceHubOk(t *testing.T) {
+	hub := &mockDeviceHub{topics: []string{"topic.a"}}
+	ds := NewEdgeDatasource(newMockClient(true), "uid", hub)
+	res, err := ds.CheckHealth(context.Background(), &backend.CheckHealthRequest{})
+	require.NoError(t, err)
+	assert.Equal(t, backend.HealthStatusOk, res.Status)
+	assert.Contains(t, res.Message, "Topic autocomplete is working")
+}
+
+func TestCheckHealth_DeviceHubUnauthorized(t *testing.T) {
+	hub := &mockDeviceHub{err: edge.ErrUnauthorized}
+	ds := NewEdgeDatasource(newMockClient(true), "uid", hub)
 	res, err := ds.CheckHealth(context.Background(), &backend.CheckHealthRequest{})
 	require.NoError(t, err)
 	assert.Equal(t, backend.HealthStatusError, res.Status)
+	assert.Contains(t, res.Message, "API token is invalid or expired")
+}
+
+func TestCheckHealth_DeviceHubUnreachable(t *testing.T) {
+	hub := &mockDeviceHub{err: assert.AnError}
+	ds := NewEdgeDatasource(newMockClient(true), "uid", hub)
+	res, err := ds.CheckHealth(context.Background(), &backend.CheckHealthRequest{})
+	require.NoError(t, err)
+	assert.Equal(t, backend.HealthStatusError, res.Status)
+	assert.Contains(t, res.Message, "could not reach the Edge API")
 }
 
 func TestNewEdgeInstance_InvalidSettings(t *testing.T) {
@@ -83,10 +112,12 @@ func TestNewEdgeInstance_EmptySettings(t *testing.T) {
 
 func TestGetSettings_Validation(t *testing.T) {
 	tests := []struct {
-		name     string
-		jsonData string
-		token    string
-		wantErr  string
+		name         string
+		jsonData     string
+		token        string
+		apiToken     string
+		wantErr      string
+		wantAPIToken string
 	}{
 		{
 			name:     "missing hostname",
@@ -98,28 +129,40 @@ func TestGetSettings_Validation(t *testing.T) {
 			name:     "missing token",
 			jsonData: `{"hostname": "192.168.1.1"}`,
 			token:    "",
-			wantErr:  "API token is required",
+			wantErr:  "Access Account token is required",
 		},
 		{
-			name:     "valid settings",
+			name:     "valid settings without apiToken",
 			jsonData: `{"hostname": "192.168.1.1"}`,
 			token:    "valid-token",
+		},
+		{
+			name:         "valid settings with apiToken",
+			jsonData:     `{"hostname": "192.168.1.1"}`,
+			token:        "valid-token",
+			apiToken:     "my-api-token",
+			wantAPIToken: "my-api-token",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			secureData := map[string]string{"token": tt.token}
+			if tt.apiToken != "" {
+				secureData["apiToken"] = tt.apiToken
+			}
 			s := backend.DataSourceInstanceSettings{
 				JSONData:                []byte(tt.jsonData),
-				DecryptedSecureJSONData: map[string]string{"token": tt.token},
+				DecryptedSecureJSONData: secureData,
 			}
-			opts, err := getSettings(s)
+			opts, apiToken, err := getSettings(s)
 			if tt.wantErr != "" {
 				require.ErrorContains(t, err, tt.wantErr)
 			} else {
 				require.NoError(t, err)
 				assert.Equal(t, "192.168.1.1", opts.Hostname)
 				assert.Equal(t, "valid-token", opts.Token)
+				assert.Equal(t, tt.wantAPIToken, apiToken)
 			}
 		})
 	}

@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/url"
 	"regexp"
 	"strings"
@@ -43,7 +44,7 @@ func NewClient(opts ConnectionOptions) (Client, error) {
 	natsURL := &url.URL{
 		Scheme: "nats",
 		User:   url.UserPassword("admin", opts.Token),
-		Host:   fmt.Sprintf("%s:4222", opts.Hostname),
+		Host:   fmt.Sprintf("%s:4222", stripPort(opts.Hostname)),
 	}
 	skipVerify := nats.Secure(&tls.Config{InsecureSkipVerify: true}) //nolint:gosec // Litmus Edge uses self-signed certs on local network
 	conn, err := nats.Connect(natsURL.String(),
@@ -265,4 +266,14 @@ func (c *client) createMessageFromDHMessage(msg *nats.Msg, dhMessage DHMessage) 
 		Timestamp: timestamp,
 		Value:     valueBytes,
 	}
+}
+
+// stripPort removes the port from a host:port string.
+// If there is no port, the hostname is returned unchanged.
+func stripPort(hostname string) string {
+	host, _, err := net.SplitHostPort(hostname)
+	if err != nil {
+		return hostname // no port present
+	}
+	return host
 }

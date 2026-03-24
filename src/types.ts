@@ -21,4 +21,10 @@ export interface EdgeDataSourceOptions extends DataSourceJsonData {
  */
 export interface EdgeSecureJsonData {
   token?: string;
+  apiToken?: string;
+}
+
+export interface TopicSearchResponse {
+  topics: string[];
+  error?: 'api_token_not_configured' | 'unauthorized' | 'unreachable';
 }

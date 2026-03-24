@@ -12,11 +12,11 @@ This is a live-only plugin. It does not query or store historical data.
 
 - Grafana v12.2+
 - Litmus Edge v3.16+
-- A [Litmus Edge API account](https://docs.litmus.io/litmusedge/product-features/system/access-control/tokens/create-api-account) with a token that has NATS proxy read access
+- A [Litmus Edge Access Account](https://docs.litmus.io/litmusedge/product-features/system/access-control/tokens/create-api-account) with a token that has NATS Proxy read access
 - Network connectivity from Grafana to the Litmus Edge instance on port 4222 (NATS)
 
 > [!NOTE]
-> The [NATS proxy](https://docs.litmus.io/litmusedge/product-features/system/access-control/tokens#nats-proxy) must be enabled on the Litmus Edge instance and the API token needs read access to the topics you want to stream.
+> The [NATS Proxy](https://docs.litmus.io/litmusedge/product-features/system/access-control/tokens#nats-proxy) must be enabled on the Litmus Edge instance and the Access Account token needs read access to the topics you want to stream.
 
 ## Configure the data source
 
@@ -25,7 +25,7 @@ This is a live-only plugin. It does not query or store historical data.
 | Field | What to enter | Example |
 |-------|---------------|---------|
 | Hostname | Hostname or IP of the Litmus Edge instance | `192.168.1.100` |
-| Token | API token with NATS proxy read access | *(stored securely by Grafana)* |
+| Access Account Token | Token with NATS Proxy read access | *(stored securely by Grafana)* |
 
 Click "Save & test". If the connection works, you'll see "Connected to the Edge".
 
@@ -97,7 +97,7 @@ Each query row subscribes to one topic. To stream several topics, add more query
 
 ### "Save & test" fails with a connection error
 
-Check three things: can Grafana reach the Litmus Edge host on port 4222? Is the NATS proxy enabled on the Edge instance? Is the API token valid and not expired?
+Check three things: can Grafana reach the Litmus Edge host on port 4222? Is the NATS Proxy enabled on the Edge instance? Is the Access Account token valid and not expired?
 
 ### Panel shows "No data"
 
@@ -113,7 +113,7 @@ The topic is getting more than 10,000 messages per second. Subscribe to a more s
 
 ### Rotating credentials
 
-API tokens are stored in Grafana's [secure JSON data](https://grafana.com/docs/grafana/latest/administration/provisioning/#datasources) and are never sent to the browser after initial setup. To rotate, edit the data source, enter the new token, and hit "Save & test".
+Tokens are stored in Grafana's [secure JSON data](https://grafana.com/docs/grafana/latest/administration/provisioning/#datasources) and are never sent to the browser after initial setup. To rotate, edit the data source, enter the new token, and hit "Save & test".
 
 ## Contributing
 

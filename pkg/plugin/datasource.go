@@ -19,13 +19,14 @@ import (
 // interfaces- only those which are required for a particular task.
 var (
 	_ backend.CheckHealthHandler    = (*EdgeDatasource)(nil)
+	_ backend.CallResourceHandler   = (*EdgeDatasource)(nil)
 	_ instancemgmt.InstanceDisposer = (*EdgeDatasource)(nil)
 	_ backend.StreamHandler         = (*EdgeDatasource)(nil) // Streaming data source needs to implement this
 )
 
 // NewEdgeInstance creates a new datasource instance.
 func NewEdgeInstance(_ context.Context, s backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
-	settings, err := getSettings(s)
+	settings, apiToken, err := getSettings(s)
 	if err != nil {
 		return nil, err
 	}
@@ -36,14 +37,19 @@ func NewEdgeInstance(_ context.Context, s backend.DataSourceInstanceSettings) (i
 		return nil, err
 	}
 
-	return NewEdgeDatasource(client, s.UID), nil
+	var deviceHub edge.DeviceHubClient
+	if apiToken != "" {
+		deviceHub = edge.NewDeviceHubClient(settings.Hostname, apiToken)
+	}
+
+	return NewEdgeDatasource(client, s.UID, deviceHub), nil
 }
 
-func getSettings(s backend.DataSourceInstanceSettings) (*edge.ConnectionOptions, error) {
+func getSettings(s backend.DataSourceInstanceSettings) (*edge.ConnectionOptions, string, error) {
 	opts := &edge.ConnectionOptions{}
 
 	if err := json.Unmarshal(s.JSONData, opts); err != nil {
-		return nil, fmt.Errorf("error reading settings: %w", err)
+		return nil, "", fmt.Errorf("error reading settings: %w", err)
 	}
 
 	if token, ok := s.DecryptedSecureJSONData["token"]; ok {
@@ -51,24 +57,28 @@ func getSettings(s backend.DataSourceInstanceSettings) (*edge.ConnectionOptions,
 	}
 
 	if opts.Hostname == "" {
-		return nil, fmt.Errorf("hostname is required")
+		return nil, "", fmt.Errorf("hostname is required")
 	}
 	if opts.Token == "" {
-		return nil, fmt.Errorf("API token is required")
+		return nil, "", fmt.Errorf("Access Account token is required")
 	}
 
-	return opts, nil
+	apiToken := s.DecryptedSecureJSONData["apiToken"]
+
+	return opts, apiToken, nil
 }
 
 type EdgeDatasource struct {
 	Client        edge.Client
 	channelPrefix string
+	deviceHub     edge.DeviceHubClient
 }
 
-func NewEdgeDatasource(client edge.Client, uid string) *EdgeDatasource {
+func NewEdgeDatasource(client edge.Client, uid string, deviceHub edge.DeviceHubClient) *EdgeDatasource {
 	return &EdgeDatasource{
 		Client:        client,
 		channelPrefix: path.Join("ds", uid),
+		deviceHub:     deviceHub,
 	}
 }
 
