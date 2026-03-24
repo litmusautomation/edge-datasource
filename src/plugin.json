@@ -6,9 +6,6 @@
   "metrics": true,
   "backend": true,
   "executable": "gpx_edge",
-  "annotations": true,
-  "alerting": true,
-  "logs": true,
   "info": {
     "description": "The Litmus Edge data source plugin enables the visualization of real time data streaming from the edge in Grafana",
     "author": {
