@@ -32,7 +32,7 @@ func NewEdgeInstance(_ context.Context, s backend.DataSourceInstanceSettings) (i
 
 	client, err := edge.NewClient(*settings)
 	if err != nil {
-		log.DefaultLogger.Error("Error creating the client", err)
+		log.DefaultLogger.Error("Error creating the client", "error", err)
 		return nil, err
 	}
 
@@ -48,6 +48,13 @@ func getSettings(s backend.DataSourceInstanceSettings) (*edge.ConnectionOptions,
 
 	if token, ok := s.DecryptedSecureJSONData["token"]; ok {
 		opts.Token = token
+	}
+
+	if opts.Hostname == "" {
+		return nil, fmt.Errorf("hostname is required")
+	}
+	if opts.Token == "" {
+		return nil, fmt.Errorf("API token is required")
 	}
 
 	return opts, nil

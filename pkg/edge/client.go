@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"regexp"
 	"strings"
 	"sync"
@@ -39,9 +40,13 @@ type client struct {
 }
 
 func NewClient(opts ConnectionOptions) (Client, error) {
-	url := fmt.Sprintf("nats://admin:%s@%s:4222", opts.Token, opts.Hostname)
-	skipVerify := nats.Secure(&tls.Config{InsecureSkipVerify: true})
-	conn, err := nats.Connect(url,
+	natsURL := &url.URL{
+		Scheme: "nats",
+		User:   url.UserPassword("admin", opts.Token),
+		Host:   fmt.Sprintf("%s:4222", opts.Hostname),
+	}
+	skipVerify := nats.Secure(&tls.Config{InsecureSkipVerify: true}) //nolint:gosec // Litmus Edge uses self-signed certs on local network
+	conn, err := nats.Connect(natsURL.String(),
 		skipVerify,
 		nats.MaxReconnects(-1),
 		nats.ReconnectWait(2*time.Second),

@@ -45,6 +45,21 @@ func TestTopic_AddMessage_BoundsCheck(t *testing.T) {
 	assert.Len(t, msgs, maxMessages)
 }
 
+func TestTopic_AddMessage_TracksDrops(t *testing.T) {
+	topic := &Topic{TopicName: "test"}
+
+	for i := 0; i < maxMessages+50; i++ {
+		topic.AddMessage(newTestMessage("x"))
+	}
+
+	// dropped counter should reflect the 50 excess messages
+	assert.Equal(t, int64(50), topic.dropped.Load())
+
+	// DrainMessages resets the counter
+	topic.DrainMessages()
+	assert.Equal(t, int64(0), topic.dropped.Load())
+}
+
 func TestTopic_ConcurrentAccess(t *testing.T) {
 	topic := &Topic{TopicName: "test"}
 	var wg sync.WaitGroup
@@ -94,7 +109,7 @@ func TestTopic_ToDataFrame(t *testing.T) {
 	assert.Equal(t, 1, frame.Fields[0].Len())
 }
 
-func TestTopicMap_AddMessage_DelegatesToTopic(t *testing.T) {
+func TestTopicMap_AddMessage_DirectLookup(t *testing.T) {
 	tm := &TopicMap{
 		subscriptions: make(map[string]*nats.Subscription),
 	}
@@ -105,4 +120,18 @@ func TestTopicMap_AddMessage_DelegatesToTopic(t *testing.T) {
 
 	msgs := topic.DrainMessages()
 	assert.Len(t, msgs, 1)
+}
+
+func TestTopicMap_AddMessage_UnknownTopic(t *testing.T) {
+	tm := &TopicMap{
+		subscriptions: make(map[string]*nats.Subscription),
+	}
+	topic := &Topic{TopicName: "sensor.temp"}
+	tm.Store(topic)
+
+	// Message for unknown topic is silently ignored, existing topic unaffected.
+	tm.AddMessage("unknown.topic", newTestMessage("val"))
+
+	msgs := topic.DrainMessages()
+	assert.Len(t, msgs, 0)
 }

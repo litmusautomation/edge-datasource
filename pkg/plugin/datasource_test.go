@@ -80,3 +80,47 @@ func TestNewEdgeInstance_EmptySettings(t *testing.T) {
 	_, err = NewEdgeInstance(context.Background(), settings)
 	require.Error(t, err, "expected error for empty NATS settings")
 }
+
+func TestGetSettings_Validation(t *testing.T) {
+	tests := []struct {
+		name     string
+		jsonData string
+		token    string
+		wantErr  string
+	}{
+		{
+			name:     "missing hostname",
+			jsonData: `{"hostname": ""}`,
+			token:    "valid-token",
+			wantErr:  "hostname is required",
+		},
+		{
+			name:     "missing token",
+			jsonData: `{"hostname": "192.168.1.1"}`,
+			token:    "",
+			wantErr:  "API token is required",
+		},
+		{
+			name:     "valid settings",
+			jsonData: `{"hostname": "192.168.1.1"}`,
+			token:    "valid-token",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := backend.DataSourceInstanceSettings{
+				JSONData:                []byte(tt.jsonData),
+				DecryptedSecureJSONData: map[string]string{"token": tt.token},
+			}
+			opts, err := getSettings(s)
+			if tt.wantErr != "" {
+				require.ErrorContains(t, err, tt.wantErr)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, "192.168.1.1", opts.Hostname)
+				assert.Equal(t, "valid-token", opts.Token)
+			}
+		})
+	}
+}

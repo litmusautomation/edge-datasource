@@ -74,6 +74,7 @@ func (ds *EdgeDatasource) RunStream(ctx context.Context, req *backend.RunStreamR
 
 			if err := sender.SendFrame(frame, data.IncludeAll); err != nil {
 				logger.Error("Failed to send data frame", "path", req.Path, "error", backend.DownstreamError(err))
+				return nil
 			}
 		}
 	}

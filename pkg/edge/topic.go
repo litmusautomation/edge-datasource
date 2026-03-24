@@ -2,8 +2,10 @@ package edge
 
 import (
 	"sync"
+	"sync/atomic"
 	"time"
 
+	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
 	"github.com/nats-io/nats.go"
 )
@@ -23,6 +25,7 @@ type Topic struct {
 	mu        sync.Mutex
 	messages  []Message
 	framer    *framer
+	dropped   atomic.Int64
 }
 
 // AddMessage appends a message to the topic's buffer, dropping it if the cap is reached.
@@ -30,17 +33,23 @@ func (t *Topic) AddMessage(msg Message) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	if len(t.messages) >= maxMessages {
+		t.dropped.Add(1)
 		return
 	}
 	t.messages = append(t.messages, msg)
 }
 
 // DrainMessages returns the buffered messages and resets the buffer.
+// If any messages were dropped since the last drain, a warning is logged.
 func (t *Topic) DrainMessages() []Message {
 	t.mu.Lock()
-	defer t.mu.Unlock()
 	msgs := t.messages
 	t.messages = nil
+	t.mu.Unlock()
+
+	if n := t.dropped.Swap(0); n > 0 {
+		log.DefaultLogger.Warn("Messages dropped (buffer full)", "topic", t.TopicName, "dropped", n)
+	}
 	return msgs
 }
 
@@ -94,15 +103,13 @@ func (tm *TopicMap) Range(f func(key string, topic *Topic) bool) {
 	})
 }
 
-// AddMessage adds a message to the topic for the given path
+// AddMessage adds a message to the topic for the given topic name.
 func (tm *TopicMap) AddMessage(topicName string, msg Message) {
-	tm.Range(func(_ string, topic *Topic) bool {
-		if topic.TopicName == topicName {
-			topic.AddMessage(msg)
-			return false
-		}
-		return true
-	})
+	topic, ok := tm.Load(topicName)
+	if !ok {
+		return
+	}
+	topic.AddMessage(msg)
 }
 
 func (tm *TopicMap) AddSubscription(topicName string, sub *nats.Subscription) {
