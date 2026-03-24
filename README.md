@@ -117,4 +117,4 @@ Tokens are stored in Grafana's [secure JSON data](https://grafana.com/docs/grafa
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, build commands, and how to run tests.
+See [CONTRIBUTING.md](https://github.com/litmusautomation/edge-datasource/blob/main/CONTRIBUTING.md) for development setup, build commands, and how to run tests.
