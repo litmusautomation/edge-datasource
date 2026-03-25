@@ -20,7 +20,7 @@ test.describe('Config editor', () => {
   test('save & test fails with invalid credentials', async ({ createDataSourceConfigPage, page }) => {
     const configPage = await createDataSourceConfigPage({ type: 'litmus-edge-datasource' });
 
-    await page.getByPlaceholder('192.168.1.100').fill('192.168.0.999');
+    await page.getByPlaceholder('172.17.0.1').fill('192.168.0.999');
     await page.getByPlaceholder('Access Account token').fill('invalid-token');
 
     await configPage.saveAndTest();

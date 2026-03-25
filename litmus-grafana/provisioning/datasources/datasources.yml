@@ -1,0 +1,22 @@
+# Set LITMUS_EDGE_HOSTNAME and LITMUS_EDGE_ACCESS_ACCOUNT_TOKEN as environment
+# variables when running the container:
+#
+#   docker run -e LITMUS_EDGE_HOSTNAME=172.17.0.1 \
+#              -e LITMUS_EDGE_ACCESS_ACCOUNT_TOKEN=<token> \
+#              -e LITMUS_EDGE_API_TOKEN=<api-token> \
+#              litmus-grafana
+apiVersion: 1
+
+datasources:
+  - name: 'Litmus Edge'
+    type: 'litmus-edge-datasource'
+    access: proxy
+    isDefault: true
+    orgId: 1
+    version: 1
+    editable: true
+    jsonData:
+      hostname: ${LITMUS_EDGE_HOSTNAME}
+    secureJsonData:
+      token: ${LITMUS_EDGE_ACCESS_ACCOUNT_TOKEN}
+      apiToken: ${LITMUS_EDGE_API_TOKEN}

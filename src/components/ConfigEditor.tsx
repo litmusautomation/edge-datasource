@@ -46,12 +46,18 @@ export function ConfigEditor(props: Props) {
         <Field
           label="Hostname"
           required
-          description="Litmus Edge hostname or IP address. Append :port if it differs from the default (e.g., 192.168.1.100:8443)."
+          description={
+            <>
+              Hostname or IP, e.g. <code>172.17.0.1</code>.
+              <br />
+              If your Edge URL includes a port, use the same form — e.g. <code>172.17.0.1:8443</code>.
+            </>
+          }
         >
           <Input
             width={WIDTH}
             name="hostname"
-            placeholder="192.168.1.100"
+            placeholder="172.17.0.1"
             value={jsonData.hostname || ''}
             onChange={onUpdateDatasourceJsonDataOption(props, 'hostname')}
           />

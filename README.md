@@ -24,8 +24,10 @@ This is a live-only plugin. It does not query or store historical data.
 
 | Field                | What to enter                              | Example                        |
 | -------------------- | ------------------------------------------ | ------------------------------ |
-| Hostname             | Hostname or IP of the Litmus Edge instance | `192.168.1.100`                |
+| Hostname             | Hostname or IP of the Litmus Edge instance | `172.17.0.1`                   |
 | Access Account Token | Token with NATS Proxy read access          | _(stored securely by Grafana)_ |
+
+**Hostname:** the plugin uses the host for NATS on port 4222 (any `:port` in this field is ignored for that connection). If Litmus Edge’s HTTPS UI uses a non-default port, use `host:port` so topic autocomplete can reach the API (for example `172.17.0.1:8443`).
 
 Click "Save & test". If the connection works, you'll see "Connected to the Edge".
 
