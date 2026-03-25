@@ -22,10 +22,10 @@ This is a live-only plugin. It does not query or store historical data.
 
 [Add a new data source](https://grafana.com/docs/grafana/latest/datasources/add-a-data-source/) and select Litmus Edge.
 
-| Field | What to enter | Example |
-|-------|---------------|---------|
-| Hostname | Hostname or IP of the Litmus Edge instance | `192.168.1.100` |
-| Access Account Token | Token with NATS Proxy read access | *(stored securely by Grafana)* |
+| Field                | What to enter                              | Example                        |
+| -------------------- | ------------------------------------------ | ------------------------------ |
+| Hostname             | Hostname or IP of the Litmus Edge instance | `192.168.1.100`                |
+| Access Account Token | Token with NATS Proxy read access          | _(stored securely by Grafana)_ |
 
 Click "Save & test". If the connection works, you'll see "Connected to the Edge".
 
@@ -47,13 +47,13 @@ The plugin subscribes to that topic and pushes frames to the panel once per seco
 
 The plugin parses JSON payloads and maps values to Grafana field types:
 
-| Payload type | Grafana field type |
-|---|---|
-| Number | Float64 |
-| String | String |
-| Boolean | Boolean |
-| Null | Nullable field |
-| JSON array | JSON |
+| Payload type       | Grafana field type                             |
+| ------------------ | ---------------------------------------------- |
+| Number             | Float64                                        |
+| String             | String                                         |
+| Boolean            | Boolean                                        |
+| Null               | Nullable field                                 |
+| JSON array         | JSON                                           |
 | Nested JSON object | JSON (use the "Extract Fields" transformation) |
 
 Every frame includes a `Time` field. If the payload has a `timestamp` field (Unix milliseconds), that value is used. Otherwise the plugin uses the arrival time.
@@ -70,6 +70,23 @@ $site.$area.$line.$sensor
 
 They're resolved before each query runs, so panels update when you change a variable.
 
+### Showing labels in legend and tooltip
+
+DH metadata labels are preserved (for example `deviceName`, `tagName`, `deviceId`, `topic`).
+
+In panel **Field > Standard options > Display name**, use label variables like:
+
+```
+${__field.labels.deviceName}.${__field.labels.tagName}
+```
+
+Examples:
+
+```
+${__field.labels.topic}
+${__field.name} (${__field.labels.deviceId})
+```
+
 ### Multiple topics
 
 Each query row subscribes to one topic. To stream several topics, add more query rows in the same panel. They're independent, so a failure in one won't affect the others.
@@ -84,14 +101,14 @@ Each query row subscribes to one topic. To stream several topics, add more query
 
 ## What it supports
 
-| Feature | Supported |
-|---------|-----------|
-| Metrics (streaming) | Yes |
-| Template variables | Yes |
-| Alerting | No |
-| Annotations | No |
-| Logs | No |
-| Historical queries | No |
+| Feature             | Supported |
+| ------------------- | --------- |
+| Metrics (streaming) | Yes       |
+| Template variables  | Yes       |
+| Alerting            | No        |
+| Annotations         | No        |
+| Logs                | No        |
+| Historical queries  | No        |
 
 ## Troubleshooting
 

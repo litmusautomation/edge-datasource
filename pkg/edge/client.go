@@ -177,15 +177,16 @@ func (c *client) validateTopic(topic string) error {
 
 // DH Tag Message type:
 type DHMessage struct {
-	Success     bool        `json:"success"`
-	Datatype    string      `json:"datatype"`
-	Timestamp   int64       `json:"timestamp"`
-	RegisterId  string      `json:"registerId"`
-	Value       interface{} `json:"value"`
-	DeviceId    string      `json:"deviceId"`
-	TagName     string      `json:"tagName"`
-	DeviceName  string      `json:"deviceName"`
-	Description string      `json:"description"`
+	Success     bool            `json:"success"`
+	Datatype    string          `json:"datatype"`
+	Timestamp   int64           `json:"timestamp"`
+	RegisterId  string          `json:"registerId"`
+	Value       interface{}     `json:"value"`
+	DeviceId    string          `json:"deviceId"`
+	TagName     string          `json:"tagName"`
+	DeviceName  string          `json:"deviceName"`
+	Description string          `json:"description"`
+	Metadata    json.RawMessage `json:"metadata"`
 }
 
 // isDHMessage returns true if the parsed message has the required DeviceHub fields.
@@ -265,6 +266,7 @@ func (c *client) createMessageFromDHMessage(msg *nats.Msg, dhMessage DHMessage) 
 		Labels:    labels,
 		Timestamp: timestamp,
 		Value:     valueBytes,
+		Metadata:  dhMessage.Metadata,
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"path"
+	"strings"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
@@ -49,9 +50,55 @@ func (df *framer) addValue(fieldType data.FieldType, v interface{}, fName string
 	field := data.NewFieldFromFieldType(fieldType, df.fields[0].Len())
 	field.Name = path.Join(fName, df.key())
 	field.Labels = labels
+	if displayName := buildDisplayNameFromDS(fName, df.key(), labels); displayName != "" {
+		if field.Config == nil {
+			field.Config = &data.FieldConfig{}
+		}
+		field.Config.DisplayNameFromDS = displayName
+	}
 	field.Append(v)
 	df.fields = append(df.fields, field)
 	df.fieldMap[df.key()] = len(df.fields) - 1
+}
+
+func buildDisplayNameFromDS(fieldName string, key string, labels data.Labels) string {
+	base := seriesBaseName(fieldName, labels)
+	if base == "" {
+		return ""
+	}
+	if key == "" {
+		return base
+	}
+	return path.Join(base, key)
+}
+
+func seriesBaseName(fieldName string, labels data.Labels) string {
+	if tagName, ok := labels["tagName"]; ok && tagName != "" {
+		if deviceName, ok := labels["deviceName"]; ok && deviceName != "" {
+			return deviceName + "." + tagName
+		}
+		return tagName
+	}
+
+	if topic, ok := labels["topic"]; ok && topic != "" {
+		return topicLeafName(topic)
+	}
+
+	if strings.ContainsAny(fieldName, "./") {
+		return topicLeafName(fieldName)
+	}
+
+	return ""
+}
+
+func topicLeafName(topic string) string {
+	tokens := strings.FieldsFunc(topic, func(r rune) bool {
+		return r == '.' || r == '/'
+	})
+	if len(tokens) == 0 {
+		return topic
+	}
+	return tokens[len(tokens)-1]
 }
 
 func (df *framer) addNil(fieldName string) {
@@ -127,6 +174,13 @@ func (df *framer) toFrame(messages []Message) (*data.Frame, error) {
 			log.DefaultLogger.Error("error parsing message", "Field Name", message.FieldName, "error", err)
 			continue
 		}
+
+		if len(message.Metadata) > 0 {
+			df.path = []string{"metadata"}
+			df.addValue(data.FieldTypeJSON, json.RawMessage(message.Metadata), message.FieldName, message.Labels)
+			df.path = []string{}
+		}
+
 		df.fields[0].Append(message.Timestamp)
 		df.extendFields(df.fields[0].Len() - 1)
 	}

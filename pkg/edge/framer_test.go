@@ -2,6 +2,7 @@ package edge
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 	"time"
 
@@ -152,11 +153,11 @@ func TestFramer(t *testing.T) {
 	t.Run("mixed types across fields", func(t *testing.T) {
 		runFramerTest(t, "mixed-types", []Message{
 			msg("tag", map[string]interface{}{
-				"name":    "sensor-1",
-				"value":   42.0,
-				"active":  true,
-				"tags":    []string{"a", "b"},
-				"meta":    map[string]interface{}{"version": 2},
+				"name":   "sensor-1",
+				"value":  42.0,
+				"active": true,
+				"tags":   []string{"a", "b"},
+				"meta":   map[string]interface{}{"version": 2},
 			}),
 		})
 	})
@@ -220,5 +221,86 @@ func TestFramer(t *testing.T) {
 		// only has 1 row (second was type-mismatched and dropped), so it gets
 		// extended with a nil via extendFields.
 		assert.Equal(t, 2, frame.Fields[0].Len(), "Time field should have 2 rows")
+	})
+}
+
+func TestFramer_DisplayNameFromDS(t *testing.T) {
+	t.Run("uses device and tag labels for DH payload", func(t *testing.T) {
+		f := newFramer()
+		frame, err := f.toFrame([]Message{{
+			FieldName: "temperature",
+			Timestamp: fixedTime,
+			Value:     []byte(`21.5`),
+			Labels: data.Labels{
+				"topic":      "devicehub.alias.demo.bearing_temperature",
+				"tagName":    "temperature",
+				"deviceName": "Machine-3",
+			},
+		}})
+		require.NoError(t, err)
+		require.Len(t, frame.Fields, 2)
+		require.NotNil(t, frame.Fields[1].Config)
+		assert.Equal(t, "Machine-3.temperature", frame.Fields[1].Config.DisplayNameFromDS)
+	})
+
+	t.Run("uses topic leaf name for raw payload", func(t *testing.T) {
+		f := newFramer()
+		frame, err := f.toFrame([]Message{{
+			FieldName: "devicehub.alias.demo.bearing_temperature",
+			Timestamp: fixedTime,
+			Value:     []byte(`42`),
+			Labels:    data.Labels{},
+		}})
+		require.NoError(t, err)
+		require.Len(t, frame.Fields, 2)
+		require.NotNil(t, frame.Fields[1].Config)
+		assert.Equal(t, "bearing_temperature", frame.Fields[1].Config.DisplayNameFromDS)
+	})
+
+	t.Run("exposes DH metadata as json field", func(t *testing.T) {
+		f := newFramer()
+		frame, err := f.toFrame([]Message{{
+			FieldName: "motor_current",
+			Timestamp: fixedTime,
+			Value:     []byte(`19.73`),
+			Metadata:  []byte(`{"quality":"good","source":"opcua"}`),
+			Labels: data.Labels{
+				"tagName":    "motor_current",
+				"deviceName": "demo_opc",
+			},
+		}})
+		require.NoError(t, err)
+		require.Len(t, frame.Fields, 3)
+		require.NotNil(t, frame.Fields[2].Config)
+		assert.Equal(t, "demo_opc.motor_current/metadata", frame.Fields[2].Config.DisplayNameFromDS)
+	})
+
+	t.Run("metadata null is exposed as json field", func(t *testing.T) {
+		f := newFramer()
+		frame, err := f.toFrame([]Message{{
+			FieldName: "motor_current",
+			Timestamp: fixedTime,
+			Value:     []byte(`19.73`),
+			Metadata:  []byte(`null`),
+			Labels:    data.Labels{"tagName": "motor_current"},
+		}})
+		require.NoError(t, err)
+		require.Len(t, frame.Fields, 3)
+		assert.Equal(t, data.FieldTypeJSON, frame.Fields[2].Type())
+	})
+
+	t.Run("large metadata remains available as json field", func(t *testing.T) {
+		f := newFramer()
+		largeMetadata := []byte(`{"blob":"` + strings.Repeat("x", 8192) + `"}`)
+		frame, err := f.toFrame([]Message{{
+			FieldName: "motor_current",
+			Timestamp: fixedTime,
+			Value:     []byte(`19.73`),
+			Metadata:  largeMetadata,
+			Labels:    data.Labels{"tagName": "motor_current"},
+		}})
+		require.NoError(t, err)
+		require.Len(t, frame.Fields, 3)
+		assert.Equal(t, data.FieldTypeJSON, frame.Fields[2].Type())
 	})
 }

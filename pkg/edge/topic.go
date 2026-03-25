@@ -18,6 +18,7 @@ type Message struct {
 	Labels    data.Labels
 	Timestamp time.Time
 	Value     []byte
+	Metadata  []byte
 }
 
 type Topic struct {

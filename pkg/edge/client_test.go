@@ -81,6 +81,7 @@ var fullDHPayload = DHMessage{
 	TagName:     "temperature",
 	DeviceName:  "PLC-A",
 	Description: "Motor bearing temp",
+	Metadata:    json.RawMessage(`{"source":"opcua","unit":"A"}`),
 }
 
 func mustJSON(t *testing.T, v interface{}) []byte {
@@ -111,6 +112,7 @@ func TestMessageWrapper_DHMessage(t *testing.T) {
 	assert.Equal(t, "PLC-A", msg.Labels["deviceName"])
 	assert.Equal(t, "Motor bearing temp", msg.Labels["description"])
 	assert.Equal(t, "reg-001", msg.Labels["registerId"])
+	assert.JSONEq(t, `{"source":"opcua","unit":"A"}`, string(msg.Metadata))
 }
 
 func TestMessageWrapper_DHMessage_PartialLabels(t *testing.T) {
@@ -180,6 +182,41 @@ func TestMessageWrapper_DHMessage_BoolValue(t *testing.T) {
 
 	assert.Equal(t, "alarm", msg.FieldName)
 	assert.JSONEq(t, "true", string(msg.Value))
+}
+
+func TestMessageWrapper_DHMessage_MetadataNull(t *testing.T) {
+	c := &client{}
+	payload := DHMessage{
+		TagName:   "motor_current",
+		Timestamp: 1700000000000,
+		DeviceId:  "dev-001",
+		Value:     19.7,
+		Metadata:  json.RawMessage(`null`),
+	}
+	natsMsg := &nats.Msg{Subject: "topic.current", Data: mustJSON(t, payload)}
+
+	msg := c.MessageWrapper(natsMsg)
+
+	assert.Equal(t, "motor_current", msg.FieldName)
+	assert.JSONEq(t, "19.7", string(msg.Value))
+	assert.Equal(t, "null", string(msg.Metadata))
+}
+
+func TestMessageWrapper_DHMessage_MetadataArray(t *testing.T) {
+	c := &client{}
+	payload := DHMessage{
+		TagName:   "motor_current",
+		Timestamp: 1700000000000,
+		DeviceId:  "dev-001",
+		Value:     19.7,
+		Metadata:  json.RawMessage(`["phaseA","phaseB"]`),
+	}
+	natsMsg := &nats.Msg{Subject: "topic.current", Data: mustJSON(t, payload)}
+
+	msg := c.MessageWrapper(natsMsg)
+
+	assert.Equal(t, "motor_current", msg.FieldName)
+	assert.JSONEq(t, `["phaseA","phaseB"]`, string(msg.Metadata))
 }
 
 func TestMessageWrapper_NonDH_JSON_WithTimestamp(t *testing.T) {
