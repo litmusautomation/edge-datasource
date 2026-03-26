@@ -381,6 +381,69 @@ func TestGetTimestampFromMessageData(t *testing.T) {
 	})
 }
 
+func TestStringBool_UnmarshalJSON(t *testing.T) {
+	tests := []struct {
+		name string
+		json string
+		want bool
+	}{
+		{"bool true", `{"externalEdge": true}`, true},
+		{"bool false", `{"externalEdge": false}`, false},
+		{"string true", `{"externalEdge": "true"}`, true},
+		{"string false", `{"externalEdge": "false"}`, false},
+		{"string TRUE", `{"externalEdge": "TRUE"}`, true},
+		{"string True", `{"externalEdge": "True"}`, true},
+		{"string 1", `{"externalEdge": "1"}`, true},
+		{"string 0", `{"externalEdge": "0"}`, false},
+		{"string empty", `{"externalEdge": ""}`, false},
+		{"string arbitrary", `{"externalEdge": "yes"}`, false},
+		{"null", `{"externalEdge": null}`, false},
+		{"number 1", `{"externalEdge": 1}`, false},
+		{"number 0", `{"externalEdge": 0}`, false},
+		{"missing field", `{}`, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var opts ConnectionOptions
+			err := json.Unmarshal([]byte(tt.json), &opts)
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, bool(opts.ExternalEdge))
+		})
+	}
+}
+
+func TestResolveGatewayHost(t *testing.T) {
+	// ResolveGatewayHost reads /proc/net/route which is Linux-only and
+	// may not have a default route in CI. We just verify it doesn't panic
+	// and returns either a valid IP or a clear error.
+	ip, err := ResolveGatewayHost()
+	if err != nil {
+		assert.Contains(t, err.Error(), "/proc/net/route")
+	} else {
+		assert.Regexp(t, `^\d+\.\d+\.\d+\.\d+$`, ip, "should be a dotted IPv4 address")
+	}
+}
+
+func TestStripPort(t *testing.T) {
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{"172.17.0.1", "172.17.0.1"},
+		{"172.17.0.1:8443", "172.17.0.1"},
+		{"10.30.50.1", "10.30.50.1"},
+		{"hostname", "hostname"},
+		{"hostname:4222", "hostname"},
+		{"", ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			assert.Equal(t, tt.want, stripPort(tt.input))
+		})
+	}
+}
+
 func TestTopicMap_SubscriptionMutex(t *testing.T) {
 	tm := &TopicMap{
 		subscriptions: make(map[string]*nats.Subscription),
