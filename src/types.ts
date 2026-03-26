@@ -14,11 +14,18 @@ export const DEFAULT_QUERY: Partial<EdgeQuery> = {
  */
 export interface EdgeDataSourceOptions extends DataSourceJsonData {
   hostname: string;
+  externalEdge?: boolean;
 }
 
 /**
  * Value that is used in the backend, but never sent over HTTP to the frontend
  */
 export interface EdgeSecureJsonData {
-  token: string;
+  token?: string;
+  apiToken?: string;
+}
+
+export interface TopicSearchResponse {
+  topics: string[];
+  error?: 'api_token_not_configured' | 'unauthorized' | 'unreachable';
 }

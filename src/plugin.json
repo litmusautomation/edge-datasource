@@ -6,29 +6,12 @@
   "metrics": true,
   "backend": true,
   "executable": "gpx_edge",
-  "annotations": true,
-  "alerting": true,
-  "logs": true,
   "info": {
     "description": "The Litmus Edge data source plugin enables the visualization of real time data streaming from the edge in Grafana",
     "author": {
       "name": "Litmus Automation"
     },
     "keywords": ["datasource", "litmus edge", "edge", "real time", "streaming"],
-    "screenshots": [
-      {
-        "name": "Litmus Edge Data Source",
-        "path": "img/le-datasource.gif"
-      },
-      {
-        "name": "Litmus Edge Data Source Configuration",
-        "path": "img/le-datasource-config.png"
-      },
-      {
-        "name": "Litmus Edge Data Source Query",
-        "path": "img/le-datasource-query.png"
-      }
-    ],
     "logos": {
       "small": "img/logo.svg",
       "large": "img/logo.svg"

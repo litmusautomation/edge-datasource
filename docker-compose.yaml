@@ -9,5 +9,8 @@ services:
     extends:
       file: .config/docker-compose-base.yaml
       service: grafana
-    # environment:
-    #   - GF_LOG_LEVEL=warn
+    environment:
+      LITMUS_EDGE_EXTERNAL: ${LITMUS_EDGE_EXTERNAL:-false}
+      LITMUS_EDGE_HOSTNAME: ${LITMUS_EDGE_HOSTNAME:-}
+      LITMUS_EDGE_ACCESS_ACCOUNT_TOKEN: ${LITMUS_EDGE_ACCESS_ACCOUNT_TOKEN:-}
+      LITMUS_EDGE_API_TOKEN: ${LITMUS_EDGE_API_TOKEN:-}

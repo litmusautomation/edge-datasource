@@ -19,49 +19,79 @@ import (
 // interfaces- only those which are required for a particular task.
 var (
 	_ backend.CheckHealthHandler    = (*EdgeDatasource)(nil)
+	_ backend.CallResourceHandler   = (*EdgeDatasource)(nil)
 	_ instancemgmt.InstanceDisposer = (*EdgeDatasource)(nil)
 	_ backend.StreamHandler         = (*EdgeDatasource)(nil) // Streaming data source needs to implement this
 )
 
 // NewEdgeInstance creates a new datasource instance.
 func NewEdgeInstance(_ context.Context, s backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
-	settings, err := getSettings(s)
+	settings, apiToken, err := getSettings(s)
 	if err != nil {
 		return nil, err
 	}
 
 	client, err := edge.NewClient(*settings)
 	if err != nil {
-		log.DefaultLogger.Error("Error creating the client", err)
+		log.DefaultLogger.Error("Error creating the client", "error", err)
 		return nil, err
 	}
 
-	return NewEdgeDatasource(client, s.UID), nil
+	var deviceHub edge.DeviceHubClient
+	if apiToken != "" {
+		deviceHub = edge.NewDeviceHubClient(settings.Hostname, apiToken)
+	}
+
+	return NewEdgeDatasource(client, s.UID, deviceHub, bool(settings.ExternalEdge)), nil
 }
 
-func getSettings(s backend.DataSourceInstanceSettings) (*edge.ConnectionOptions, error) {
+func getSettings(s backend.DataSourceInstanceSettings) (*edge.ConnectionOptions, string, error) {
 	opts := &edge.ConnectionOptions{}
 
 	if err := json.Unmarshal(s.JSONData, opts); err != nil {
-		return nil, fmt.Errorf("error reading settings: %w", err)
+		log.DefaultLogger.Error("Failed to parse datasource settings JSON", "error", err)
+		return nil, "", fmt.Errorf("invalid datasource configuration — please re-enter your settings and save")
 	}
 
 	if token, ok := s.DecryptedSecureJSONData["token"]; ok {
 		opts.Token = token
 	}
 
-	return opts, nil
+	if bool(opts.ExternalEdge) {
+		if opts.Hostname == "" {
+			return nil, "", fmt.Errorf("hostname is required when connecting to an external Litmus Edge")
+		}
+		if opts.Token == "" {
+			return nil, "", fmt.Errorf("Access Account token is required when connecting to an external Litmus Edge")
+		}
+	} else {
+		gateway, err := edge.ResolveGatewayHost()
+		if err != nil {
+			log.DefaultLogger.Error("Gateway detection failed", "error", err)
+			return nil, "", fmt.Errorf("could not auto-detect the Litmus Edge host — enable External Litmus Edge and provide the hostname manually")
+		}
+		opts.Hostname = gateway
+		opts.Token = "" // no auth needed from docker0 whitelist
+	}
+
+	apiToken := s.DecryptedSecureJSONData["apiToken"]
+
+	return opts, apiToken, nil
 }
 
 type EdgeDatasource struct {
 	Client        edge.Client
 	channelPrefix string
+	deviceHub     edge.DeviceHubClient
+	externalEdge  bool
 }
 
-func NewEdgeDatasource(client edge.Client, uid string) *EdgeDatasource {
+func NewEdgeDatasource(client edge.Client, uid string, deviceHub edge.DeviceHubClient, externalEdge bool) *EdgeDatasource {
 	return &EdgeDatasource{
 		Client:        client,
 		channelPrefix: path.Join("ds", uid),
+		deviceHub:     deviceHub,
+		externalEdge:  externalEdge,
 	}
 }
 

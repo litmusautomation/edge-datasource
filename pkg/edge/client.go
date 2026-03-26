@@ -1,30 +1,62 @@
 package edge
 
 import (
+	"bufio"
+	"context"
 	"crypto/tls"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"net"
+	"net/url"
+	"os"
 	"regexp"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
+	"github.com/grafana/grafana-plugin-sdk-go/backend/tracing"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
 	"github.com/nats-io/nats.go"
 )
 
+// topicTokenPattern validates that each dot-separated token contains only non-whitespace, non-dot characters.
+var topicTokenPattern = regexp.MustCompile(`^[^\s.]+$`)
+
 type Client interface {
 	Subscribe(string) error
-	Unsubscribe(string)
+	Unsubscribe(string) error
 	GetTopic(string) (*Topic, bool)
 	IsConnected() bool
 	Dispose()
 }
 
 type ConnectionOptions struct {
-	Hostname string `json:"hostname"`
-	Token    string `json:"token"`
+	Hostname     string     `json:"hostname"`
+	Token        string     `json:"token"`
+	ExternalEdge StringBool `json:"externalEdge"`
+}
+
+// StringBool handles JSON values that may be a bool or a string ("true"/"false").
+// Grafana provisioning passes env-var defaults as strings.
+type StringBool bool
+
+func (b *StringBool) UnmarshalJSON(data []byte) error {
+	var raw interface{}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	switch v := raw.(type) {
+	case bool:
+		*b = StringBool(v)
+	case string:
+		*b = StringBool(strings.EqualFold(v, "true") || v == "1")
+	default:
+		*b = false
+	}
+	return nil
 }
 
 type client struct {
@@ -33,11 +65,34 @@ type client struct {
 }
 
 func NewClient(opts ConnectionOptions) (Client, error) {
-	url := fmt.Sprintf("nats://admin:%s@%s:4222", opts.Token, opts.Hostname)
-	skipVerify := nats.Secure(&tls.Config{InsecureSkipVerify: true})
-	conn, err := nats.Connect(url, skipVerify)
+	host := stripPort(opts.Hostname)
+	natsURL := &url.URL{
+		Scheme: "nats",
+		Host:   fmt.Sprintf("%s:4222", host),
+	}
+
+	natsOpts := []nats.Option{
+		nats.MaxReconnects(-1),
+		nats.ReconnectWait(2 * time.Second),
+		nats.DisconnectErrHandler(func(_ *nats.Conn, err error) {
+			log.DefaultLogger.Warn("NATS disconnected", "hostname", opts.Hostname, "err", err)
+		}),
+		nats.ReconnectHandler(func(_ *nats.Conn) {
+			log.DefaultLogger.Info("NATS reconnected", "hostname", opts.Hostname)
+		}),
+	}
+
+	if bool(opts.ExternalEdge) {
+		// External mode: authenticate and use TLS (LE uses self-signed certs)
+		natsURL.User = url.UserPassword("admin", opts.Token)
+		natsOpts = append(natsOpts, nats.Secure(&tls.Config{InsecureSkipVerify: true})) //nolint:gosec
+	}
+	// Inside LE: no auth, no TLS — loopedge-access whitelists docker0 connections
+
+	conn, err := nats.Connect(natsURL.String(), natsOpts...)
 	if err != nil {
-		return nil, err
+		log.DefaultLogger.Error("NATS connection failed", "url", natsURL.Redacted(), "error", err)
+		return nil, backend.DownstreamErrorf("could not connect to the NATS server — check that Litmus Edge is reachable and the NATS Proxy is enabled on port 4222")
 	}
 
 	log.DefaultLogger.Info("Connected to NATS Server", "hostname", opts.Hostname)
@@ -51,27 +106,37 @@ func NewClient(opts ConnectionOptions) (Client, error) {
 }
 
 func (c *client) Subscribe(topicName string) error {
+	_, span := tracing.DefaultTracer().Start(context.Background(), "edge.Subscribe")
+	defer span.End()
+
 	if topicName == "" {
-		return fmt.Errorf("empty topic")
+		err := fmt.Errorf("empty topic")
+		tracing.Error(span, err)
+		return err
 	}
 
 	// Validate the topic
 	if err := c.validateTopic(topicName); err != nil {
-		return fmt.Errorf("invalid topic: %w", err)
+		wrapped := fmt.Errorf("invalid topic: %w", err)
+		tracing.Error(span, wrapped)
+		return wrapped
+	}
+
+	// Idempotent: if already subscribed, return without error
+	if _, ok := c.topicMap.Load(topicName); ok {
+		return nil
 	}
 
 	topic := &Topic{
 		TopicName: topicName,
 	}
 
-	if _, ok := c.topicMap.Load(topicName); ok {
-		return fmt.Errorf("already subscribed to topic: [%s]", topicName)
-	}
-
 	log.DefaultLogger.Debug("Subscribing to NATS Topic", "topic", topicName)
 	sub, err := c.conn.Subscribe(topicName, c.MessageHandler)
 	if err != nil {
-		return fmt.Errorf("failed to subscribe to NATS Topic: %w", err)
+		wrapped := backend.DownstreamErrorf("failed to subscribe to NATS topic: %s", err)
+		tracing.Error(span, wrapped)
+		return wrapped
 	}
 
 	c.topicMap.AddSubscription(topicName, sub)
@@ -79,25 +144,23 @@ func (c *client) Subscribe(topicName string) error {
 	return nil
 }
 
-func (c *client) Unsubscribe(topicName string) {
+func (c *client) Unsubscribe(topicName string) error {
 	t, ok := c.GetTopic(topicName)
 	if !ok {
-		log.DefaultLogger.Warn("Topic not found", "topic", topicName)
-		return
+		return nil // No error if topic doesn't exist
 	}
 
 	// Get the subscription
 	sub := c.topicMap.GetSubscription(t.TopicName)
 	if sub == nil {
 		log.DefaultLogger.Debug("Subscription not found", "topic", topicName)
-		return
+		return nil
 	}
 
 	// Unsubscribe from the topic
 	log.DefaultLogger.Debug("Unsubscribing from NATS Topic", "topic", topicName)
 	if err := sub.Unsubscribe(); err != nil {
-		log.DefaultLogger.Debug("Failed to unsubscribe from NATS Topic", "topic", topicName, "err", err)
-		return
+		return backend.DownstreamErrorf("failed to unsubscribe from NATS topic %s: %s", topicName, err)
 	}
 
 	// Delete the topic
@@ -106,6 +169,7 @@ func (c *client) Unsubscribe(topicName string) {
 	// Remove the subscription
 	c.topicMap.RemoveSubscription(t.TopicName)
 	log.DefaultLogger.Debug("Unsubscribed from NATS Topic", "topic", topicName)
+	return nil
 }
 
 func (c *client) GetTopic(topicName string) (*Topic, bool) {
@@ -131,15 +195,12 @@ func (c *client) MessageHandler(msg *nats.Msg) {
 // - Each token in the topic should consist of non-whitespace characters and should not contain any dots.
 // Returns an error if the topic is invalid.
 func (c *client) validateTopic(topic string) error {
-	// Compile the regex pattern once and reuse it
-	pattern := regexp.MustCompile(`^[^\s.]+$`)
-
 	tokens := strings.Split(topic, ".")
 	for _, token := range tokens {
 		if token == ">" || token == "*" {
 			return fmt.Errorf("wildcards are not allowed")
 		}
-		if !pattern.MatchString(token) {
+		if !topicTokenPattern.MatchString(token) {
 			return fmt.Errorf("invalid token: %s", token)
 		}
 	}
@@ -149,22 +210,27 @@ func (c *client) validateTopic(topic string) error {
 
 // DH Tag Message type:
 type DHMessage struct {
-	Success     bool        `json:"success"`
-	Datatype    string      `json:"datatype"`
-	Timestamp   int64       `json:"timestamp"`
-	RegisterId  string      `json:"registerId"`
-	Value       interface{} `json:"value"`
-	DeviceId    string      `json:"deviceId"`
-	TagName     string      `json:"tagName"`
-	DeviceName  string      `json:"deviceName"`
-	Description string      `json:"description"`
+	Success     bool            `json:"success"`
+	Datatype    string          `json:"datatype"`
+	Timestamp   int64           `json:"timestamp"`
+	RegisterId  string          `json:"registerId"`
+	Value       interface{}     `json:"value"`
+	DeviceId    string          `json:"deviceId"`
+	TagName     string          `json:"tagName"`
+	DeviceName  string          `json:"deviceName"`
+	Description string          `json:"description"`
+	Metadata    json.RawMessage `json:"metadata"`
+}
+
+// isDHMessage returns true if the parsed message has the required DeviceHub fields.
+func isDHMessage(dh DHMessage) bool {
+	return dh.TagName != "" && dh.Timestamp != 0 && dh.DeviceId != ""
 }
 
 // MessageWrapper is a wrapper for the NATS message
 func (c *client) MessageWrapper(msg *nats.Msg) Message {
 	var dhMessage DHMessage
-	err := json.Unmarshal(msg.Data, &dhMessage)
-	if err != nil {
+	if err := json.Unmarshal(msg.Data, &dhMessage); err != nil || !isDHMessage(dhMessage) {
 		return c.createMessageFromRawData(msg)
 	}
 
@@ -188,7 +254,7 @@ func (c *client) getTimestampFromMessageData(data []byte) time.Time {
 	}
 	var v hasTime
 	err := json.Unmarshal(data, &v)
-	if err == nil {
+	if err == nil && v.Timestamp != 0 {
 		return time.UnixMilli(v.Timestamp)
 	}
 
@@ -224,8 +290,8 @@ func (c *client) createMessageFromDHMessage(msg *nats.Msg, dhMessage DHMessage) 
 
 	valueBytes, err := json.Marshal(dhMessage.Value)
 	if err != nil {
-		log.DefaultLogger.Error("Failed to marshal value", "topic", msg.Subject)
-		return Message{}
+		log.DefaultLogger.Warn("Failed to marshal DH value, falling back to raw data", "topic", msg.Subject, "error", err)
+		return c.createMessageFromRawData(msg)
 	}
 
 	return Message{
@@ -233,5 +299,51 @@ func (c *client) createMessageFromDHMessage(msg *nats.Msg, dhMessage DHMessage) 
 		Labels:    labels,
 		Timestamp: timestamp,
 		Value:     valueBytes,
+		Metadata:  dhMessage.Metadata,
 	}
+}
+
+// ResolveGatewayHost reads /proc/net/route to find the default gateway IP.
+// On the Docker bridge network, this is the host machine running Litmus Edge.
+func ResolveGatewayHost() (string, error) {
+	f, err := os.Open("/proc/net/route")
+	if err != nil {
+		return "", fmt.Errorf("cannot read /proc/net/route: %w", err)
+	}
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	scanner.Scan() // skip header line
+	for scanner.Scan() {
+		fields := strings.Fields(scanner.Text())
+		if len(fields) < 3 {
+			continue
+		}
+		// Default route has destination "00000000"
+		if fields[1] != "00000000" {
+			continue
+		}
+		gatewayHex := fields[2]
+		b, err := hex.DecodeString(gatewayHex)
+		if err != nil || len(b) != 4 {
+			return "", fmt.Errorf("invalid gateway hex %q", gatewayHex)
+		}
+		// /proc/net/route stores the gateway as a little-endian hex uint32
+		ip := fmt.Sprintf("%d.%d.%d.%d", b[3], b[2], b[1], b[0])
+		return ip, nil
+	}
+	if err := scanner.Err(); err != nil {
+		return "", fmt.Errorf("error reading /proc/net/route: %w", err)
+	}
+	return "", fmt.Errorf("no default route found in /proc/net/route")
+}
+
+// stripPort removes the port from a host:port string.
+// If there is no port, the hostname is returned unchanged.
+func stripPort(hostname string) string {
+	host, _, err := net.SplitHostPort(hostname)
+	if err != nil {
+		return hostname // no port present
+	}
+	return host
 }

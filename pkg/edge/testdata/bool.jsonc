@@ -1,0 +1,56 @@
+//  🌟 This was machine generated.  Do not edit. 🌟
+//  
+//  Frame[0] 
+//  Name: edge
+//  Dimensions: 2 Fields by 2 Rows
+//  +-------------------------------+-------------------+
+//  | Name: Time                    | Name: tag/enabled |
+//  | Labels:                       | Labels:           |
+//  | Type: []time.Time             | Type: []*bool     |
+//  +-------------------------------+-------------------+
+//  | 2026-01-01 00:00:00 +0000 UTC | true              |
+//  | 2026-01-01 00:00:00 +0000 UTC | false             |
+//  +-------------------------------+-------------------+
+//  
+//  
+//  🌟 This was machine generated.  Do not edit. 🌟
+{
+  "status": 200,
+  "frames": [
+    {
+      "schema": {
+        "name": "edge",
+        "fields": [
+          {
+            "name": "Time",
+            "type": "time",
+            "typeInfo": {
+              "frame": "time.Time"
+            }
+          },
+          {
+            "name": "tag/enabled",
+            "type": "boolean",
+            "typeInfo": {
+              "frame": "bool",
+              "nullable": true
+            },
+            "labels": {}
+          }
+        ]
+      },
+      "data": {
+        "values": [
+          [
+            1767225600000,
+            1767225600000
+          ],
+          [
+            true,
+            false
+          ]
+        ]
+      }
+    }
+  ]
+}

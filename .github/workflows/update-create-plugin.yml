@@ -1,0 +1,20 @@
+name: Create Plugin Update
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 1 * *' # first day of each month
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: grafana/plugin-actions/create-plugin-update@create-plugin-update/v2.0.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}

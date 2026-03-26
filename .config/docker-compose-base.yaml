@@ -24,9 +24,9 @@ services:
       - ..:/root/litmus-edge-datasource
 
     environment:
-      # Passed into provisioning YAML (${LITMUS_EDGE_HOSTNAME} / ${LITMUS_EDGE_TOKEN})
       LITMUS_EDGE_HOSTNAME: ${LITMUS_EDGE_HOSTNAME:-}
-      LITMUS_EDGE_TOKEN: ${LITMUS_EDGE_TOKEN:-}
+      LITMUS_EDGE_ACCESS_ACCOUNT_TOKEN: ${LITMUS_EDGE_ACCESS_ACCOUNT_TOKEN:-}
+      LITMUS_EDGE_API_TOKEN: ${LITMUS_EDGE_API_TOKEN:-}
       NODE_ENV: development
       GF_LOG_FILTERS: plugin.litmus-edge-datasource:debug
       GF_LOG_LEVEL: debug

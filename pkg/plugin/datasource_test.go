@@ -1,77 +1,219 @@
 package plugin
 
-// import (
-// 	"context"
-// 	"fmt"
-// 	"testing"
+import (
+	"context"
+	"encoding/json"
+	"testing"
 
-// 	"github.com/grafana/grafana-plugin-sdk-go/backend"
-// 	edge "github.com/litmus/edge/pkg/edge"
-// 	"github.com/stretchr/testify/require"
-// )
+	"github.com/grafana/grafana-plugin-sdk-go/backend"
+	"github.com/litmus/edge/pkg/edge"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
 
-// var (
-// 	HOSTNAME        = "127.0.0.1"
-// 	TOKEN           = "s3cr3t"
-// 	SKIP_TLS_VERIFY = true
+// mockClient implements edge.Client for tests without a real NATS connection.
+type mockClient struct {
+	connected   bool
+	subscribed  map[string]bool
+	subscribeErr error
+}
 
-// 	CLIENT_SETTINGS = edge.ConnectionOptions{
-// 		Token:    TOKEN,
-// 		Hostname: HOSTNAME,
-// 	}
+func newMockClient(connected bool) *mockClient {
+	return &mockClient{connected: connected, subscribed: make(map[string]bool)}
+}
 
-// 	SERVER_SETTINGS = backend.DataSourceInstanceSettings{
-// 		JSONData: []byte(fmt.Sprintf(`{"host": "%s"}`, HOSTNAME)),
-// 		DecryptedSecureJSONData: map[string]string{
-// 			"token": TOKEN,
-// 		},
-// 	}
-// )
+func (m *mockClient) Subscribe(topic string) error {
+	if m.subscribeErr != nil {
+		return m.subscribeErr
+	}
+	m.subscribed[topic] = true
+	return nil
+}
 
-// func TestNewEdgeInstance(t *testing.T) {
-// 	t.Run("should return a new instance of EdgeDatasource", func(t *testing.T) {
-// 		ctx := context.Background()
-// 		settings := SERVER_SETTINGS
-// 		instance, err := NewEdgeInstance(ctx, settings)
-// 		if err != nil {
-// 			t.Errorf("Unexpected error: %v", err)
-// 		}
-// 		if instance == nil {
-// 			t.Error("Expected non-nil instance")
-// 		}
-// 	})
+func (m *mockClient) Unsubscribe(topic string) error {
+	delete(m.subscribed, topic)
+	return nil
+}
 
-// 	t.Run("should return an error if settings are invalid", func(t *testing.T) {
-// 		ctx := context.Background()
-// 		settings := backend.DataSourceInstanceSettings{}
-// 		_, err := NewEdgeInstance(ctx, settings)
-// 		if err == nil {
-// 			t.Error("Expected error")
-// 		}
-// 	})
-// }
+func (m *mockClient) GetTopic(topic string) (*edge.Topic, bool) {
+	return nil, false
+}
 
-// func TestCheckHealth(t *testing.T) {
-// 	t.Run("should return HealthStatusOk", func(t *testing.T) {
-// 		client, err := edge.NewClient(CLIENT_SETTINGS)
-// 		if err != nil {
-// 			t.Errorf("Unexpected error: %v", err)
-// 		}
-// 		ds := NewEdgeDatasource(client, "uid")
-// 		res, _ := ds.CheckHealth(context.Background(), &backend.CheckHealthRequest{})
-// 		require.Equal(t, res.Status, backend.HealthStatusOk)
-// 		require.Equal(t, res.Message, "Connected to the Edge")
-// 	})
+func (m *mockClient) IsConnected() bool {
+	return m.connected
+}
 
-// 	t.Run("should return HealthStatusError", func(t *testing.T) {
-// 		client, err := edge.NewClient(CLIENT_SETTINGS)
-// 		if err != nil {
-// 			t.Errorf("Unexpected error: %v", err)
-// 		}
-// 		ds := NewEdgeDatasource(client, "uid")
-// 		ds.Dispose()
-// 		res, _ := ds.CheckHealth(context.Background(), &backend.CheckHealthRequest{})
-// 		require.Equal(t, res.Status, backend.HealthStatusError)
-// 		require.Equal(t, res.Message, "Not connected to the Edge")
-// 	})
-// }
+func (m *mockClient) Dispose() {
+	m.connected = false
+}
+
+func TestCheckHealth_Connected(t *testing.T) {
+	ds := NewEdgeDatasource(newMockClient(true), "uid", nil, false)
+	res, err := ds.CheckHealth(context.Background(), &backend.CheckHealthRequest{})
+	require.NoError(t, err)
+	assert.Equal(t, backend.HealthStatusOk, res.Status)
+	assert.Contains(t, res.Message, "Connected to the Edge")
+}
+
+func TestCheckHealth_DisconnectedInsideLE(t *testing.T) {
+	ds := NewEdgeDatasource(newMockClient(false), "uid", nil, false)
+	res, err := ds.CheckHealth(context.Background(), &backend.CheckHealthRequest{})
+	require.NoError(t, err)
+	assert.Equal(t, backend.HealthStatusError, res.Status)
+	assert.Contains(t, res.Message, "Docker bridge network")
+	assert.Contains(t, res.Message, "switch to External mode")
+}
+
+func TestCheckHealth_DisconnectedExternal(t *testing.T) {
+	ds := NewEdgeDatasource(newMockClient(false), "uid", nil, true)
+	res, err := ds.CheckHealth(context.Background(), &backend.CheckHealthRequest{})
+	require.NoError(t, err)
+	assert.Equal(t, backend.HealthStatusError, res.Status)
+	assert.Contains(t, res.Message, "configured hostname")
+	assert.Contains(t, res.Message, "token has NATS Proxy read access")
+}
+
+func TestCheckHealth_DeviceHubOk(t *testing.T) {
+	hub := &mockDeviceHub{topics: []string{"topic.a"}}
+	ds := NewEdgeDatasource(newMockClient(true), "uid", hub, false)
+	res, err := ds.CheckHealth(context.Background(), &backend.CheckHealthRequest{})
+	require.NoError(t, err)
+	assert.Equal(t, backend.HealthStatusOk, res.Status)
+	assert.Contains(t, res.Message, "Topic autocomplete is working")
+}
+
+func TestCheckHealth_DeviceHubUnauthorized(t *testing.T) {
+	hub := &mockDeviceHub{err: edge.ErrUnauthorized}
+	ds := NewEdgeDatasource(newMockClient(true), "uid", hub, false)
+	res, err := ds.CheckHealth(context.Background(), &backend.CheckHealthRequest{})
+	require.NoError(t, err)
+	assert.Equal(t, backend.HealthStatusError, res.Status)
+	assert.Contains(t, res.Message, "API token is invalid or expired")
+}
+
+func TestCheckHealth_DeviceHubUnreachable(t *testing.T) {
+	hub := &mockDeviceHub{err: assert.AnError}
+	ds := NewEdgeDatasource(newMockClient(true), "uid", hub, false)
+	res, err := ds.CheckHealth(context.Background(), &backend.CheckHealthRequest{})
+	require.NoError(t, err)
+	assert.Equal(t, backend.HealthStatusError, res.Status)
+	assert.Contains(t, res.Message, "could not reach the Edge API")
+}
+
+func TestNewEdgeInstance_InvalidSettings(t *testing.T) {
+	settings := backend.DataSourceInstanceSettings{
+		JSONData: []byte(`not-valid-json`),
+	}
+	_, err := NewEdgeInstance(context.Background(), settings)
+	require.Error(t, err)
+}
+
+func TestNewEdgeInstance_ExternalEmptySettings(t *testing.T) {
+	// External mode with no hostname/token → should fail validation.
+	data, err := json.Marshal(map[string]interface{}{"externalEdge": true, "hostname": ""})
+	require.NoError(t, err)
+	settings := backend.DataSourceInstanceSettings{
+		JSONData:                data,
+		DecryptedSecureJSONData: map[string]string{"token": ""},
+	}
+	_, err = NewEdgeInstance(context.Background(), settings)
+	require.Error(t, err, "expected error for empty external NATS settings")
+}
+
+func TestGetSettings_ExternalValidation(t *testing.T) {
+	tests := []struct {
+		name         string
+		jsonData     string
+		token        string
+		apiToken     string
+		wantErr      string
+		wantAPIToken string
+	}{
+		{
+			name:     "external: missing hostname",
+			jsonData: `{"externalEdge": true, "hostname": ""}`,
+			token:    "valid-token",
+			wantErr:  "hostname is required when connecting to an external Litmus Edge",
+		},
+		{
+			name:     "external: missing token",
+			jsonData: `{"externalEdge": true, "hostname": "192.168.1.1"}`,
+			token:    "",
+			wantErr:  "Access Account token is required when connecting to an external Litmus Edge",
+		},
+		{
+			name:     "external: valid settings without apiToken",
+			jsonData: `{"externalEdge": true, "hostname": "192.168.1.1"}`,
+			token:    "valid-token",
+		},
+		{
+			name:         "external: valid settings with apiToken",
+			jsonData:     `{"externalEdge": true, "hostname": "192.168.1.1"}`,
+			token:        "valid-token",
+			apiToken:     "my-api-token",
+			wantAPIToken: "my-api-token",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			secureData := map[string]string{"token": tt.token}
+			if tt.apiToken != "" {
+				secureData["apiToken"] = tt.apiToken
+			}
+			s := backend.DataSourceInstanceSettings{
+				JSONData:                []byte(tt.jsonData),
+				DecryptedSecureJSONData: secureData,
+			}
+			opts, apiToken, err := getSettings(s)
+			if tt.wantErr != "" {
+				require.ErrorContains(t, err, tt.wantErr)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, "192.168.1.1", opts.Hostname)
+				assert.Equal(t, "valid-token", opts.Token)
+				assert.Equal(t, tt.wantAPIToken, apiToken)
+			}
+		})
+	}
+}
+
+func TestGetSettings_ExternalEdgeStringBool(t *testing.T) {
+	// Grafana provisioning passes env-var defaults as strings, not bools.
+	s := backend.DataSourceInstanceSettings{
+		JSONData:                []byte(`{"externalEdge": "true", "hostname": "192.168.1.1"}`),
+		DecryptedSecureJSONData: map[string]string{"token": "my-token"},
+	}
+	opts, _, err := getSettings(s)
+	require.NoError(t, err)
+	assert.True(t, bool(opts.ExternalEdge))
+	assert.Equal(t, "192.168.1.1", opts.Hostname)
+
+	// "false" as string
+	s.JSONData = []byte(`{"externalEdge": "false"}`)
+	s.DecryptedSecureJSONData = map[string]string{}
+	opts, _, err = getSettings(s)
+	if err != nil {
+		// Gateway detection may fail in test environments — that's fine
+		assert.Contains(t, err.Error(), "could not auto-detect")
+	} else {
+		assert.False(t, bool(opts.ExternalEdge))
+	}
+}
+
+func TestGetSettings_InsideLE(t *testing.T) {
+	// Inside-LE mode calls ResolveGatewayHost() which reads /proc/net/route.
+	// In CI/test environments this may fail — that's expected; we just verify
+	// that hostname and token are NOT required for inside-LE mode.
+	s := backend.DataSourceInstanceSettings{
+		JSONData:                []byte(`{"externalEdge": false}`),
+		DecryptedSecureJSONData: map[string]string{},
+	}
+	opts, _, err := getSettings(s)
+	if err != nil {
+		assert.Contains(t, err.Error(), "could not auto-detect the Litmus Edge host")
+	} else {
+		assert.NotEmpty(t, opts.Hostname, "hostname should be resolved from gateway")
+		assert.Empty(t, opts.Token, "token should be empty in inside-LE mode")
+	}
+}

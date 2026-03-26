@@ -2,31 +2,68 @@ package edge
 
 import (
 	"sync"
+	"sync/atomic"
 	"time"
 
+	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
 	"github.com/nats-io/nats.go"
 )
+
+// maxMessages caps the per-topic message buffer to prevent unbounded growth.
+const maxMessages = 10_000
 
 type Message struct {
 	FieldName string
 	Labels    data.Labels
 	Timestamp time.Time
 	Value     []byte
+	Metadata  []byte
 }
 
 type Topic struct {
 	TopicName string `json:"topic"`
-	Messages  []Message
+	mu        sync.Mutex
+	messages  []Message
 	framer    *framer
+	dropped   atomic.Int64
 }
 
-// ToDataFrame converts the topic to a data frame.
-func (t *Topic) ToDataFrame() (*data.Frame, error) {
+// AddMessage appends a message to the topic's buffer, dropping it if the cap is reached.
+func (t *Topic) AddMessage(msg Message) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if len(t.messages) >= maxMessages {
+		t.dropped.Add(1)
+		return
+	}
+	t.messages = append(t.messages, msg)
+}
+
+// DrainMessages returns the buffered messages and resets the buffer.
+// If any messages were dropped since the last drain, a warning is logged.
+func (t *Topic) DrainMessages() []Message {
+	t.mu.Lock()
+	msgs := t.messages
+	t.messages = nil
+	t.mu.Unlock()
+
+	if n := t.dropped.Swap(0); n > 0 {
+		log.DefaultLogger.Warn("Messages dropped (buffer full)", "topic", t.TopicName, "dropped", n)
+	}
+	return msgs
+}
+
+// ToDataFrame converts the given messages to a data frame.
+// The mutex protects both lazy framer initialization and the mutable framer
+// state, which is unsafe for concurrent use by multiple RunStream goroutines.
+func (t *Topic) ToDataFrame(messages []Message) (*data.Frame, error) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
 	if t.framer == nil {
 		t.framer = newFramer()
 	}
-	return t.framer.toFrame(t.Messages)
+	return t.framer.toFrame(messages)
 }
 
 // * * * TopicMap * * *
@@ -36,6 +73,7 @@ func (t *Topic) ToDataFrame() (*data.Frame, error) {
 // * subscriptions is a map of topic name and subscription pointer
 type TopicMap struct {
 	sync.Map
+	mu            sync.RWMutex
 	subscriptions map[string]*nats.Subscription
 }
 
@@ -66,25 +104,29 @@ func (tm *TopicMap) Range(f func(key string, topic *Topic) bool) {
 	})
 }
 
-// AddMessage adds a message to the topic for the given path
+// AddMessage adds a message to the topic for the given topic name.
 func (tm *TopicMap) AddMessage(topicName string, msg Message) {
-	tm.Range(func(_ string, topic *Topic) bool {
-		if topic.TopicName == topicName {
-			topic.Messages = append(topic.Messages, msg)
-			return false
-		}
-		return true
-	})
+	topic, ok := tm.Load(topicName)
+	if !ok {
+		return
+	}
+	topic.AddMessage(msg)
 }
 
 func (tm *TopicMap) AddSubscription(topicName string, sub *nats.Subscription) {
+	tm.mu.Lock()
+	defer tm.mu.Unlock()
 	tm.subscriptions[topicName] = sub
 }
 
 func (tm *TopicMap) RemoveSubscription(topicName string) {
+	tm.mu.Lock()
+	defer tm.mu.Unlock()
 	delete(tm.subscriptions, topicName)
 }
 
 func (tm *TopicMap) GetSubscription(topicName string) *nats.Subscription {
+	tm.mu.RLock()
+	defer tm.mu.RUnlock()
 	return tm.subscriptions[topicName]
 }

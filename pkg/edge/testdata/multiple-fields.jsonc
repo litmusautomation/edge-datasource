@@ -1,0 +1,69 @@
+//  🌟 This was machine generated.  Do not edit. 🌟
+//  
+//  Frame[0] 
+//  Name: edge
+//  Dimensions: 3 Fields by 2 Rows
+//  +-------------------------------+--------------------+-----------------------+
+//  | Name: Time                    | Name: tag/humidity | Name: tag/temperature |
+//  | Labels:                       | Labels:            | Labels:               |
+//  | Type: []time.Time             | Type: []*float64   | Type: []*float64      |
+//  +-------------------------------+--------------------+-----------------------+
+//  | 2026-01-01 00:00:00 +0000 UTC | 65                 | 22.5                  |
+//  | 2026-01-01 00:00:00 +0000 UTC | 63                 | 23.1                  |
+//  +-------------------------------+--------------------+-----------------------+
+//  
+//  
+//  🌟 This was machine generated.  Do not edit. 🌟
+{
+  "status": 200,
+  "frames": [
+    {
+      "schema": {
+        "name": "edge",
+        "fields": [
+          {
+            "name": "Time",
+            "type": "time",
+            "typeInfo": {
+              "frame": "time.Time"
+            }
+          },
+          {
+            "name": "tag/humidity",
+            "type": "number",
+            "typeInfo": {
+              "frame": "float64",
+              "nullable": true
+            },
+            "labels": {}
+          },
+          {
+            "name": "tag/temperature",
+            "type": "number",
+            "typeInfo": {
+              "frame": "float64",
+              "nullable": true
+            },
+            "labels": {}
+          }
+        ]
+      },
+      "data": {
+        "values": [
+          [
+            1767225600000,
+            1767225600000
+          ],
+          [
+            65,
+            63
+          ],
+          [
+            22.5,
+            23.1
+          ]
+        ]
+      }
+    }
+  ]
+}
