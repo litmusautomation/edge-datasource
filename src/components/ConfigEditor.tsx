@@ -6,7 +6,7 @@ import {
   onUpdateDatasourceSecureJsonDataOption,
   updateDatasourcePluginResetOption,
 } from '@grafana/data';
-import { ConfigSection, DataSourceDescription } from '@grafana/plugin-ui';
+import { DataSourceDescription } from '@grafana/plugin-ui';
 import { EdgeDataSourceOptions, EdgeSecureJsonData } from '../types';
 
 interface Props extends DataSourcePluginOptionsEditorProps<EdgeDataSourceOptions, EdgeSecureJsonData> {}
@@ -55,10 +55,24 @@ export function ConfigEditor(props: Props) {
 
       <hr />
 
-      <ConfigSection title="Connection">
-        <Field description="Enable to connect to a remote Litmus Edge instance.">
-          <Switch label="External Litmus Edge" value={externalEdge} onChange={onToggleExternalEdge} />
-        </Field>
+      <section>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+          <h4 style={{ margin: 0, fontSize: '16px', lineHeight: 1.2, color: 'var(--text-secondary)', fontWeight: 500 }}>
+            Connection
+          </h4>
+          <Switch value={externalEdge} onChange={onToggleExternalEdge} aria-label="External Litmus Edge" />
+        </div>
+        <p
+          style={{
+            margin: '0 0 12px 0',
+            color: 'var(--text-secondary)',
+            opacity: 0.85,
+            fontSize: '13px',
+            lineHeight: 1.3,
+          }}
+        >
+          Connect to a remote Litmus Edge instance.
+        </p>
 
         {externalEdge && (
           <>
@@ -67,9 +81,9 @@ export function ConfigEditor(props: Props) {
               required
               description={
                 <>
-                  Hostname or IP, e.g. <code>172.17.0.1</code>.
+                  Enter the Litmus Edge host or IP (for example: 172.17.0.1).
                   <br />
-                  If your Edge URL includes a port, use the same form — e.g. <code>172.17.0.1:8443</code>.
+                  Include a port when needed (for example: 172.17.0.1:8443).
                 </>
               }
             >
@@ -86,7 +100,7 @@ export function ConfigEditor(props: Props) {
               required
               description={
                 <>
-                  Token for accessing the NATS Proxy.{' '}
+                  Token used to access the NATS Proxy.{' '}
                   <a href={ACCESS_ACCOUNT_DOCS} target="_blank" rel="noreferrer">
                     Learn more
                   </a>
@@ -103,30 +117,35 @@ export function ConfigEditor(props: Props) {
             </Field>
           </>
         )}
-      </ConfigSection>
+      </section>
 
       <hr />
 
-      <ConfigSection
-        title="Topic Autocomplete"
-        description={
-          <>
-            Suggests matching topics as you type in the query editor.
-            <br />
-            Makes it easier to discover and select the right data stream.
-          </>
-        }
-      >
-        <Field>
-          <Switch label="Enable topic autocomplete" value={autocompleteEnabled} onChange={onToggleAutocomplete} />
-        </Field>
+      <section>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+          <h4 style={{ margin: 0, fontSize: '16px', lineHeight: 1.2, color: 'var(--text-secondary)', fontWeight: 500 }}>
+            Autocomplete
+          </h4>
+          <Switch value={autocompleteEnabled} onChange={onToggleAutocomplete} aria-label="Enable topic autocomplete" />
+        </div>
+        <p
+          style={{
+            margin: '0 0 12px 0',
+            color: 'var(--text-secondary)',
+            opacity: 0.85,
+            fontSize: '13px',
+            lineHeight: 1.3,
+          }}
+        >
+          Suggest topics as you type in the query editor to help you find the right data stream faster.
+        </p>
 
         {autocompleteEnabled && (
           <Field
             label="API Token"
             description={
               <>
-                Create an API Token under Access Control &gt; Tokens.{' '}
+                Create an API token in Access Control &gt; Tokens.{' '}
                 <a href={API_TOKEN_DOCS} target="_blank" rel="noreferrer">
                   Learn more
                 </a>
@@ -142,7 +161,7 @@ export function ConfigEditor(props: Props) {
             />
           </Field>
         )}
-      </ConfigSection>
+      </section>
     </>
   );
 }

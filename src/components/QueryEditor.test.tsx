@@ -13,6 +13,8 @@ type MockAsyncSelectProps = {
   noOptionsMessage?: string;
   allowCustomValue?: boolean;
   isClearable?: boolean;
+  menuPlacement?: 'top' | 'bottom' | 'auto';
+  menuShouldPortal?: boolean;
 };
 
 type MockInputProps = {
@@ -98,6 +100,7 @@ describe('QueryEditor', () => {
     await waitFor(() => expect(lastAsyncSelectProps).not.toBeNull());
     expect(lastAsyncSelectProps?.allowCustomValue).toBe(false);
     expect(lastAsyncSelectProps?.isClearable).toBe(false);
+    expect(lastAsyncSelectProps?.menuPlacement).toBe('top');
   });
 
   it('updates query while typing edited topic text', async () => {

@@ -68,4 +68,29 @@ test.describe('Query editor', () => {
     await topicInput.fill(partial);
     await expect(topicInput).toHaveValue(partial);
   });
+
+  test('autocomplete dropdown opens above the topic input', async ({ explorePage, page }) => {
+    await explorePage.datasource.set('Litmus Edge');
+
+    const combo = page.locator('[role="combobox"]').first();
+    if ((await combo.count()) === 0) {
+      test.skip(true, 'Autocomplete combobox is not available (API token likely not configured)');
+    }
+
+    await combo.click();
+    await combo.fill('te');
+
+    const firstOption = page.getByRole('option').first();
+    await expect(firstOption).toBeVisible({ timeout: 15000 });
+
+    const inputBox = await combo.boundingBox();
+    const optionBox = await firstOption.boundingBox();
+
+    expect(inputBox).not.toBeNull();
+    expect(optionBox).not.toBeNull();
+
+    if (inputBox && optionBox) {
+      expect(optionBox.y + optionBox.height).toBeLessThanOrEqual(inputBox.y + 1);
+    }
+  });
 });
