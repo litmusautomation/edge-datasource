@@ -34,9 +34,29 @@ type Client interface {
 }
 
 type ConnectionOptions struct {
-	Hostname     string `json:"hostname"`
-	Token        string `json:"token"`
-	ExternalEdge bool   `json:"externalEdge"`
+	Hostname     string     `json:"hostname"`
+	Token        string     `json:"token"`
+	ExternalEdge StringBool `json:"externalEdge"`
+}
+
+// StringBool handles JSON values that may be a bool or a string ("true"/"false").
+// Grafana provisioning passes env-var defaults as strings.
+type StringBool bool
+
+func (b *StringBool) UnmarshalJSON(data []byte) error {
+	var raw interface{}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	switch v := raw.(type) {
+	case bool:
+		*b = StringBool(v)
+	case string:
+		*b = StringBool(v == "true" || v == "1")
+	default:
+		*b = false
+	}
+	return nil
 }
 
 type client struct {
@@ -66,7 +86,8 @@ func NewClient(opts ConnectionOptions) (Client, error) {
 		}),
 	)
 	if err != nil {
-		return nil, backend.DownstreamErrorf("error connecting to NATS server: %s", err)
+		log.DefaultLogger.Error("NATS connection failed", "url", natsURL.Redacted(), "error", err)
+		return nil, backend.DownstreamErrorf("could not connect to the NATS server — check that Litmus Edge is reachable and the NATS Proxy is enabled on port 4222")
 	}
 
 	log.DefaultLogger.Info("Connected to NATS Server", "hostname", opts.Hostname)

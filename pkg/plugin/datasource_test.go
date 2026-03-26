@@ -133,13 +133,13 @@ func TestGetSettings_ExternalValidation(t *testing.T) {
 			name:     "external: missing hostname",
 			jsonData: `{"externalEdge": true, "hostname": ""}`,
 			token:    "valid-token",
-			wantErr:  "hostname is required in external mode",
+			wantErr:  "hostname is required when connecting to an external Litmus Edge",
 		},
 		{
 			name:     "external: missing token",
 			jsonData: `{"externalEdge": true, "hostname": "192.168.1.1"}`,
 			token:    "",
-			wantErr:  "Access Account token is required in external mode",
+			wantErr:  "Access Account token is required when connecting to an external Litmus Edge",
 		},
 		{
 			name:     "external: valid settings without apiToken",
@@ -178,6 +178,29 @@ func TestGetSettings_ExternalValidation(t *testing.T) {
 	}
 }
 
+func TestGetSettings_ExternalEdgeStringBool(t *testing.T) {
+	// Grafana provisioning passes env-var defaults as strings, not bools.
+	s := backend.DataSourceInstanceSettings{
+		JSONData:                []byte(`{"externalEdge": "true", "hostname": "192.168.1.1"}`),
+		DecryptedSecureJSONData: map[string]string{"token": "my-token"},
+	}
+	opts, _, err := getSettings(s)
+	require.NoError(t, err)
+	assert.True(t, bool(opts.ExternalEdge))
+	assert.Equal(t, "192.168.1.1", opts.Hostname)
+
+	// "false" as string
+	s.JSONData = []byte(`{"externalEdge": "false"}`)
+	s.DecryptedSecureJSONData = map[string]string{}
+	opts, _, err = getSettings(s)
+	if err != nil {
+		// Gateway detection may fail in test environments — that's fine
+		assert.Contains(t, err.Error(), "could not auto-detect")
+	} else {
+		assert.False(t, bool(opts.ExternalEdge))
+	}
+}
+
 func TestGetSettings_InsideLE(t *testing.T) {
 	// Inside-LE mode calls ResolveGatewayHost() which reads /proc/net/route.
 	// In CI/test environments this may fail — that's expected; we just verify
@@ -188,7 +211,7 @@ func TestGetSettings_InsideLE(t *testing.T) {
 	}
 	opts, _, err := getSettings(s)
 	if err != nil {
-		assert.Contains(t, err.Error(), "could not detect gateway host")
+		assert.Contains(t, err.Error(), "could not auto-detect the Litmus Edge host")
 	} else {
 		assert.NotEmpty(t, opts.Hostname, "hostname should be resolved from gateway")
 		assert.Empty(t, opts.Token, "token should be empty in inside-LE mode")

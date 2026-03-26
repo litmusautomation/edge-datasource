@@ -42,31 +42,33 @@ func NewEdgeInstance(_ context.Context, s backend.DataSourceInstanceSettings) (i
 		deviceHub = edge.NewDeviceHubClient(settings.Hostname, apiToken)
 	}
 
-	return NewEdgeDatasource(client, s.UID, deviceHub, settings.ExternalEdge), nil
+	return NewEdgeDatasource(client, s.UID, deviceHub, bool(settings.ExternalEdge)), nil
 }
 
 func getSettings(s backend.DataSourceInstanceSettings) (*edge.ConnectionOptions, string, error) {
 	opts := &edge.ConnectionOptions{}
 
 	if err := json.Unmarshal(s.JSONData, opts); err != nil {
-		return nil, "", fmt.Errorf("error reading settings: %w", err)
+		log.DefaultLogger.Error("Failed to parse datasource settings JSON", "error", err)
+		return nil, "", fmt.Errorf("invalid datasource configuration — please re-enter your settings and save")
 	}
 
 	if token, ok := s.DecryptedSecureJSONData["token"]; ok {
 		opts.Token = token
 	}
 
-	if opts.ExternalEdge {
+	if bool(opts.ExternalEdge) {
 		if opts.Hostname == "" {
-			return nil, "", fmt.Errorf("hostname is required in external mode")
+			return nil, "", fmt.Errorf("hostname is required when connecting to an external Litmus Edge")
 		}
 		if opts.Token == "" {
-			return nil, "", fmt.Errorf("Access Account token is required in external mode")
+			return nil, "", fmt.Errorf("Access Account token is required when connecting to an external Litmus Edge")
 		}
 	} else {
 		gateway, err := edge.ResolveGatewayHost()
 		if err != nil {
-			return nil, "", fmt.Errorf("could not detect gateway host: %w (switch to External mode and provide hostname manually)", err)
+			log.DefaultLogger.Error("Gateway detection failed", "error", err)
+			return nil, "", fmt.Errorf("could not auto-detect the Litmus Edge host — enable External Litmus Edge and provide the hostname manually")
 		}
 		opts.Hostname = gateway
 		opts.Token = "" // no auth needed from docker0 whitelist
