@@ -12,20 +12,6 @@
       "name": "Litmus Automation"
     },
     "keywords": ["datasource", "litmus edge", "edge", "real time", "streaming"],
-    "screenshots": [
-      {
-        "name": "Litmus Edge Data Source",
-        "path": "img/le-datasource.gif"
-      },
-      {
-        "name": "Litmus Edge Data Source Configuration",
-        "path": "img/le-datasource-config.png"
-      },
-      {
-        "name": "Litmus Edge Data Source Query",
-        "path": "img/le-datasource-query.png"
-      }
-    ],
     "logos": {
       "small": "img/logo.svg",
       "large": "img/logo.svg"
