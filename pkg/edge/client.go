@@ -52,7 +52,7 @@ func (b *StringBool) UnmarshalJSON(data []byte) error {
 	case bool:
 		*b = StringBool(v)
 	case string:
-		*b = StringBool(v == "true" || v == "1")
+		*b = StringBool(strings.EqualFold(v, "true") || v == "1")
 	default:
 		*b = false
 	}
