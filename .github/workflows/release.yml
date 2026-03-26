@@ -56,8 +56,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      id-token: write
-      attestations: write
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -70,11 +68,6 @@ jobs:
           mkdir -p litmus-edge-datasource
           cp -r dist/* litmus-edge-datasource/
           zip -r "litmus-edge-datasource-${VERSION}.zip" litmus-edge-datasource/
-
-      - name: Attest build provenance
-        uses: actions/attest-build-provenance@v2
-        with:
-          subject-path: litmus-edge-datasource-*.zip
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
