@@ -70,21 +70,26 @@ func NewClient(opts ConnectionOptions) (Client, error) {
 		Scheme: "nats",
 		Host:   fmt.Sprintf("%s:4222", host),
 	}
-	if opts.Token != "" {
-		natsURL.User = url.UserPassword("admin", opts.Token)
-	}
-	skipVerify := nats.Secure(&tls.Config{InsecureSkipVerify: true}) //nolint:gosec // Litmus Edge uses self-signed certs on local network
-	conn, err := nats.Connect(natsURL.String(),
-		skipVerify,
+
+	natsOpts := []nats.Option{
 		nats.MaxReconnects(-1),
-		nats.ReconnectWait(2*time.Second),
+		nats.ReconnectWait(2 * time.Second),
 		nats.DisconnectErrHandler(func(_ *nats.Conn, err error) {
 			log.DefaultLogger.Warn("NATS disconnected", "hostname", opts.Hostname, "err", err)
 		}),
 		nats.ReconnectHandler(func(_ *nats.Conn) {
 			log.DefaultLogger.Info("NATS reconnected", "hostname", opts.Hostname)
 		}),
-	)
+	}
+
+	if bool(opts.ExternalEdge) {
+		// External mode: authenticate and use TLS (LE uses self-signed certs)
+		natsURL.User = url.UserPassword("admin", opts.Token)
+		natsOpts = append(natsOpts, nats.Secure(&tls.Config{InsecureSkipVerify: true})) //nolint:gosec
+	}
+	// Inside LE: no auth, no TLS — loopedge-access whitelists docker0 connections
+
+	conn, err := nats.Connect(natsURL.String(), natsOpts...)
 	if err != nil {
 		log.DefaultLogger.Error("NATS connection failed", "url", natsURL.Redacted(), "error", err)
 		return nil, backend.DownstreamErrorf("could not connect to the NATS server — check that Litmus Edge is reachable and the NATS Proxy is enabled on port 4222")

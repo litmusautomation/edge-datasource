@@ -23,7 +23,7 @@ Verified on a live LE 4.0.x instance with a litmus-grafana container running on 
 | Port 4222 | `loopedge-access` — NATS proxy with TLS (self-signed certs) |
 | Port 4999 | Raw `nats-server` — not accessible from container |
 | Auth (4222) | Whitelist: `lo,lo0,docker0` — no credentials needed from Docker bridge |
-| TLS | Self-signed certs; plugin uses `InsecureSkipVerify: true` |
+| TLS (4222) | Required for external clients (self-signed certs, `InsecureSkipVerify: true`). Skipped for whitelisted interfaces (docker0, lo). |
 | DeviceHub API | Requires API token (returns 401 without it), reachable at `https://gateway/devicehub/v2` |
 | Container → host | Reachable via gateway IP (confirmed with ping, nc, wget) |
 
@@ -146,17 +146,17 @@ Modify `NewClient()` to handle both modes:
 
 ```go
 natsOpts := []nats.Option{
-    nats.Secure(&tls.Config{InsecureSkipVerify: true}),
     // ... reconnection handlers, etc.
 }
 
-if opts.Token != "" {
-    // External mode: authenticate via user/password
-    natsURL = fmt.Sprintf("nats://admin:%s@%s:4222", opts.Token, host)
-} else {
-    // Inside LE: no auth, whitelisted on docker0
-    natsURL = fmt.Sprintf("nats://%s:4222", host)
+if opts.ExternalEdge {
+    // External mode: authenticate via user/password, TLS with self-signed certs
+    natsURL.User = url.UserPassword("admin", opts.Token)
+    natsOpts = append(natsOpts, nats.Secure(&tls.Config{InsecureSkipVerify: true}))
 }
+// Inside LE: no auth, no TLS — loopedge-access whitelists docker0 connections
+
+conn, err := nats.Connect(natsURL.String(), natsOpts...)
 ```
 
 ### 6. Backend — DeviceHub Client
