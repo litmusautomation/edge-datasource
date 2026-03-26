@@ -19,10 +19,23 @@ const API_TOKEN_DOCS =
 const WIDTH = 40;
 
 export function ConfigEditor(props: Props) {
-  const { options } = props;
+  const { options, onOptionsChange } = props;
   const { jsonData, secureJsonFields } = options;
 
+  const externalEdge = !!jsonData.externalEdge;
   const [autocompleteEnabled, setAutocompleteEnabled] = useState(!!secureJsonFields?.apiToken);
+
+  const onToggleExternalEdge = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const enabled = e.currentTarget.checked;
+    onOptionsChange({
+      ...options,
+      jsonData: {
+        ...jsonData,
+        externalEdge: enabled,
+        hostname: enabled ? jsonData.hostname : '',
+      },
+    });
+  };
 
   const onToggleAutocomplete = (e: React.ChangeEvent<HTMLInputElement>) => {
     const enabled = e.currentTarget.checked;
@@ -37,51 +50,59 @@ export function ConfigEditor(props: Props) {
       <DataSourceDescription
         dataSourceName="Litmus Edge"
         docsLink="https://github.com/litmusautomation/edge-datasource"
-        hasRequiredFields
+        hasRequiredFields={externalEdge}
       />
 
       <hr />
 
       <ConfigSection title="Connection">
-        <Field
-          label="Hostname"
-          required
-          description={
-            <>
-              Hostname or IP, e.g. <code>172.17.0.1</code>.
-              <br />
-              If your Edge URL includes a port, use the same form — e.g. <code>172.17.0.1:8443</code>.
-            </>
-          }
-        >
-          <Input
-            width={WIDTH}
-            name="hostname"
-            placeholder="172.17.0.1"
-            value={jsonData.hostname || ''}
-            onChange={onUpdateDatasourceJsonDataOption(props, 'hostname')}
-          />
+        <Field description="Enable to connect to a remote Litmus Edge instance.">
+          <Switch label="External Litmus Edge" value={externalEdge} onChange={onToggleExternalEdge} />
         </Field>
-        <Field
-          label="Access Account Token"
-          required
-          description={
-            <>
-              Token for accessing the NATS Proxy.{' '}
-              <a href={ACCESS_ACCOUNT_DOCS} target="_blank" rel="noreferrer">
-                Learn more
-              </a>
-            </>
-          }
-        >
-          <SecretInput
-            width={WIDTH}
-            placeholder="Access Account token"
-            isConfigured={!!secureJsonFields?.token}
-            onReset={() => updateDatasourcePluginResetOption(props, 'token')}
-            onBlur={onUpdateDatasourceSecureJsonDataOption(props, 'token')}
-          />
-        </Field>
+
+        {externalEdge && (
+          <>
+            <Field
+              label="Hostname"
+              required
+              description={
+                <>
+                  Hostname or IP, e.g. <code>172.17.0.1</code>.
+                  <br />
+                  If your Edge URL includes a port, use the same form — e.g. <code>172.17.0.1:8443</code>.
+                </>
+              }
+            >
+              <Input
+                width={WIDTH}
+                name="hostname"
+                placeholder="172.17.0.1"
+                value={jsonData.hostname || ''}
+                onChange={onUpdateDatasourceJsonDataOption(props, 'hostname')}
+              />
+            </Field>
+            <Field
+              label="Access Account Token"
+              required
+              description={
+                <>
+                  Token for accessing the NATS Proxy.{' '}
+                  <a href={ACCESS_ACCOUNT_DOCS} target="_blank" rel="noreferrer">
+                    Learn more
+                  </a>
+                </>
+              }
+            >
+              <SecretInput
+                width={WIDTH}
+                placeholder="Access Account token"
+                isConfigured={!!secureJsonFields?.token}
+                onReset={() => updateDatasourcePluginResetOption(props, 'token')}
+                onBlur={onUpdateDatasourceSecureJsonDataOption(props, 'token')}
+              />
+            </Field>
+          </>
+        )}
       </ConfigSection>
 
       <hr />

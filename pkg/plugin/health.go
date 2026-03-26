@@ -10,12 +10,19 @@ import (
 	"github.com/litmus/edge/pkg/edge"
 )
 
-const natsConnectError = `Could not connect to Litmus Edge.
+const natsConnectErrorExternal = `Could not connect to Litmus Edge.
 
 Please check:
 • Litmus Edge is reachable at the configured hostname
 • NATS Proxy is enabled (port 4222)
 • The token has NATS Proxy read access`
+
+const natsConnectErrorInternal = `Could not connect to Litmus Edge.
+
+Please check:
+• This container is running on the Litmus Edge Docker bridge network
+• NATS Proxy is enabled (port 4222)
+If the problem persists, switch to External mode and provide the hostname manually.`
 
 // CheckHealth handles health checks sent from Grafana to the plugin.
 // The main use case for these health checks is the test button on the
@@ -23,9 +30,13 @@ Please check:
 // a datasource is working as expected.
 func (d *EdgeDatasource) CheckHealth(ctx context.Context, req *backend.CheckHealthRequest) (*backend.CheckHealthResult, error) {
 	if !d.Client.IsConnected() {
+		msg := natsConnectErrorInternal
+		if d.externalEdge {
+			msg = natsConnectErrorExternal
+		}
 		return &backend.CheckHealthResult{
 			Status:  backend.HealthStatusError,
-			Message: natsConnectError,
+			Message: msg,
 		}, nil
 	}
 

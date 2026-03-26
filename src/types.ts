@@ -14,6 +14,7 @@ export const DEFAULT_QUERY: Partial<EdgeQuery> = {
  */
 export interface EdgeDataSourceOptions extends DataSourceJsonData {
   hostname: string;
+  externalEdge?: boolean;
 }
 
 /**

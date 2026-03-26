@@ -1,7 +1,13 @@
-# Set LITMUS_EDGE_HOSTNAME and LITMUS_EDGE_ACCESS_ACCOUNT_TOKEN as environment
-# variables when running the container:
+# Inside Litmus Edge (default): host is auto-detected from the Docker bridge
+# network and NATS Proxy requires no credentials. Only LITMUS_EDGE_API_TOKEN
+# is needed (for topic autocomplete via the DeviceHub API).
 #
-#   docker run -e LITMUS_EDGE_HOSTNAME=172.17.0.1 \
+#   docker run -e LITMUS_EDGE_API_TOKEN=<api-token> litmus-grafana
+#
+# External mode: set LITMUS_EDGE_EXTERNAL=true and provide hostname + token:
+#
+#   docker run -e LITMUS_EDGE_EXTERNAL=true \
+#              -e LITMUS_EDGE_HOSTNAME=172.17.0.1 \
 #              -e LITMUS_EDGE_ACCESS_ACCOUNT_TOKEN=<token> \
 #              -e LITMUS_EDGE_API_TOKEN=<api-token> \
 #              litmus-grafana
@@ -16,7 +22,8 @@ datasources:
     version: 1
     editable: true
     jsonData:
-      hostname: ${LITMUS_EDGE_HOSTNAME}
+      externalEdge: ${LITMUS_EDGE_EXTERNAL:-false}
+      hostname: ${LITMUS_EDGE_HOSTNAME:-}
     secureJsonData:
-      token: ${LITMUS_EDGE_ACCESS_ACCOUNT_TOKEN}
-      apiToken: ${LITMUS_EDGE_API_TOKEN}
+      token: ${LITMUS_EDGE_ACCESS_ACCOUNT_TOKEN:-}
+      apiToken: ${LITMUS_EDGE_API_TOKEN:-}

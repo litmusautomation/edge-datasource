@@ -1,12 +1,15 @@
 package edge
 
 import (
+	"bufio"
 	"context"
 	"crypto/tls"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net"
 	"net/url"
+	"os"
 	"regexp"
 	"strings"
 	"sync"
@@ -31,8 +34,9 @@ type Client interface {
 }
 
 type ConnectionOptions struct {
-	Hostname string `json:"hostname"`
-	Token    string `json:"token"`
+	Hostname     string `json:"hostname"`
+	Token        string `json:"token"`
+	ExternalEdge bool   `json:"externalEdge"`
 }
 
 type client struct {
@@ -41,10 +45,13 @@ type client struct {
 }
 
 func NewClient(opts ConnectionOptions) (Client, error) {
+	host := stripPort(opts.Hostname)
 	natsURL := &url.URL{
 		Scheme: "nats",
-		User:   url.UserPassword("admin", opts.Token),
-		Host:   fmt.Sprintf("%s:4222", stripPort(opts.Hostname)),
+		Host:   fmt.Sprintf("%s:4222", host),
+	}
+	if opts.Token != "" {
+		natsURL.User = url.UserPassword("admin", opts.Token)
 	}
 	skipVerify := nats.Secure(&tls.Config{InsecureSkipVerify: true}) //nolint:gosec // Litmus Edge uses self-signed certs on local network
 	conn, err := nats.Connect(natsURL.String(),
@@ -268,6 +275,41 @@ func (c *client) createMessageFromDHMessage(msg *nats.Msg, dhMessage DHMessage) 
 		Value:     valueBytes,
 		Metadata:  dhMessage.Metadata,
 	}
+}
+
+// ResolveGatewayHost reads /proc/net/route to find the default gateway IP.
+// On the Docker bridge network, this is the host machine running Litmus Edge.
+func ResolveGatewayHost() (string, error) {
+	f, err := os.Open("/proc/net/route")
+	if err != nil {
+		return "", fmt.Errorf("cannot read /proc/net/route: %w", err)
+	}
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	scanner.Scan() // skip header line
+	for scanner.Scan() {
+		fields := strings.Fields(scanner.Text())
+		if len(fields) < 3 {
+			continue
+		}
+		// Default route has destination "00000000"
+		if fields[1] != "00000000" {
+			continue
+		}
+		gatewayHex := fields[2]
+		b, err := hex.DecodeString(gatewayHex)
+		if err != nil || len(b) != 4 {
+			return "", fmt.Errorf("invalid gateway hex %q", gatewayHex)
+		}
+		// /proc/net/route stores the gateway as a little-endian hex uint32
+		ip := fmt.Sprintf("%d.%d.%d.%d", b[3], b[2], b[1], b[0])
+		return ip, nil
+	}
+	if err := scanner.Err(); err != nil {
+		return "", fmt.Errorf("error reading /proc/net/route: %w", err)
+	}
+	return "", fmt.Errorf("no default route found in /proc/net/route")
 }
 
 // stripPort removes the port from a host:port string.

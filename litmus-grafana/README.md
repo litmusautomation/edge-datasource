@@ -1,20 +1,35 @@
 # litmus-grafana
 
-A Grafana Docker image pre-bundled with the Litmus Edge datasource plugin and a curated set of community plugins for industrial/IoT dashboards.
+Litmus Grafana is a preconfigured Grafana image that includes essential visualization plugins and the Litmus Edge Datasource. It allows teams to connect to Litmus Edge and subscribe to real-time edge data streams for live monitoring, faster troubleshooting, and quick dashboard setup.
 
 ## What's included
 
 - **[Litmus Edge datasource](../README.md)** — real-time data streaming from Litmus Edge via NATS, privately signed
 - **[HTML Graphics](https://grafana.com/grafana/plugins/gapit-htmlgraphics-panel/)** — custom HTML/SVG visualizations
-- **[Infinity](https://grafana.com/grafana/plugins/yesoreyeram-infinity-datasource/)** — query any REST, GraphQL, or CSV endpoint
+<!-- - **[Infinity](https://grafana.com/grafana/plugins/yesoreyeram-infinity-datasource/)** — query any REST, GraphQL, or CSV endpoint -->
 - **[Business Variable](https://grafana.com/grafana/plugins/volkovlabs-variable-panel/)** — enhanced dashboard variable UI
 - **[Business Input](https://grafana.com/grafana/plugins/marcusolsson-static-datasource/)** — static/mock data for dashboards
 - **[Plotly.js](https://grafana.com/grafana/plugins/nline-plotlyjs-panel/)** — Plotly.js charts
 
 ## Usage
 
+### Inside Litmus Edge (default)
+
+When running as a container inside Litmus Edge, the plugin auto-detects the host via the Docker bridge network and connects to NATS without credentials. Only an API token is needed for topic autocomplete:
+
 ```bash
 docker run -p 3000:3000 \
+  -e LITMUS_EDGE_API_TOKEN=<your-api-token> \
+  us-docker.pkg.dev/litmus-customer-facing/litmus-solutions/litmus-grafana
+```
+
+### External Litmus Edge
+
+To connect to a remote Litmus Edge instance, set `LITMUS_EDGE_EXTERNAL=true` and provide the hostname and Access Account token:
+
+```bash
+docker run -p 3000:3000 \
+  -e LITMUS_EDGE_EXTERNAL=true \
   -e LITMUS_EDGE_HOSTNAME=172.17.0.1 \
   -e LITMUS_EDGE_ACCESS_ACCOUNT_TOKEN=<your-access-account-token> \
   -e LITMUS_EDGE_API_TOKEN=<your-api-token> \
@@ -27,12 +42,12 @@ The Litmus Edge datasource is automatically provisioned and set as the default. 
 
 ## Environment variables
 
-ENV GF_SERVER_ROOT_URL=http://localhost:3000
-| Variable | Required | Description |
-| ---------------------------------- | -------- | ------------------------------------------------ |
-| `LITMUS_EDGE_HOSTNAME` | Yes | Hostname or IP of the Litmus Edge instance |
-| `LITMUS_EDGE_ACCESS_ACCOUNT_TOKEN` | Yes | Access Account token with NATS Proxy read access |
-| `LITMUS_EDGE_API_TOKEN` | Yes | API token for Litmus Edge REST API access |
+| Variable                           | Required      | Description                                                                 |
+| ---------------------------------- | ------------- | --------------------------------------------------------------------------- |
+| `LITMUS_EDGE_EXTERNAL`             | No            | Set to `true` to connect to a remote Litmus Edge instance. Default: `false` |
+| `LITMUS_EDGE_HOSTNAME`             | External only | Hostname or IP of the Litmus Edge instance                                  |
+| `LITMUS_EDGE_ACCESS_ACCOUNT_TOKEN` | External only | Access Account token with NATS Proxy read access                            |
+| `LITMUS_EDGE_API_TOKEN`            | No            | API token for topic autocomplete via the DeviceHub API                      |
 
 ## Plugin signature
 

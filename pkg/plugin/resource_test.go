@@ -54,13 +54,13 @@ func callResource(t *testing.T, ds *EdgeDatasource, rawURL string) capturedRespo
 
 
 func TestCallResource_UnknownPath(t *testing.T) {
-	ds := NewEdgeDatasource(newMockClient(true), "uid", nil)
+	ds := NewEdgeDatasource(newMockClient(true), "uid", nil, false)
 	resp := callResource(t, ds, "unknown")
 	assert.Equal(t, 404, resp.status)
 }
 
 func TestHandleTopics_NoToken(t *testing.T) {
-	ds := NewEdgeDatasource(newMockClient(true), "uid", nil)
+	ds := NewEdgeDatasource(newMockClient(true), "uid", nil, false)
 	resp := callResource(t, ds, "topics")
 
 	assert.Equal(t, 200, resp.status)
@@ -72,7 +72,7 @@ func TestHandleTopics_NoToken(t *testing.T) {
 
 func TestHandleTopics_HappyPath(t *testing.T) {
 	hub := &mockDeviceHub{topics: []string{"topic.a", "topic.b"}}
-	ds := NewEdgeDatasource(newMockClient(true), "uid", hub)
+	ds := NewEdgeDatasource(newMockClient(true), "uid", hub, false)
 	resp := callResource(t, ds, "topics?query=test")
 
 	assert.Equal(t, 200, resp.status)
@@ -84,7 +84,7 @@ func TestHandleTopics_HappyPath(t *testing.T) {
 
 func TestHandleTopics_EmptyQuery(t *testing.T) {
 	hub := &mockDeviceHub{topics: []string{"all.topics"}}
-	ds := NewEdgeDatasource(newMockClient(true), "uid", hub)
+	ds := NewEdgeDatasource(newMockClient(true), "uid", hub, false)
 	resp := callResource(t, ds, "topics")
 
 	assert.Equal(t, 200, resp.status)
@@ -95,7 +95,7 @@ func TestHandleTopics_EmptyQuery(t *testing.T) {
 
 func TestHandleTopics_Unauthorized(t *testing.T) {
 	hub := &mockDeviceHub{err: edge.ErrUnauthorized}
-	ds := NewEdgeDatasource(newMockClient(true), "uid", hub)
+	ds := NewEdgeDatasource(newMockClient(true), "uid", hub, false)
 	resp := callResource(t, ds, "topics?query=test")
 
 	assert.Equal(t, 200, resp.status)
@@ -107,7 +107,7 @@ func TestHandleTopics_Unauthorized(t *testing.T) {
 
 func TestHandleTopics_Unreachable(t *testing.T) {
 	hub := &mockDeviceHub{err: assert.AnError}
-	ds := NewEdgeDatasource(newMockClient(true), "uid", hub)
+	ds := NewEdgeDatasource(newMockClient(true), "uid", hub, false)
 	resp := callResource(t, ds, "topics?query=test")
 
 	assert.Equal(t, 200, resp.status)

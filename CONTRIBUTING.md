@@ -17,8 +17,9 @@ The project uses [Grafana Plugin Tools](https://grafana.com/developers/plugin-to
 npm install
 
 cp .env.example .env
-# Fill in LITMUS_EDGE_HOSTNAME and LITMUS_EDGE_ACCESS_ACCOUNT_TOKEN
-# so the provisioned datasource can reach Litmus Edge via Docker
+# For external Litmus Edge: set LITMUS_EDGE_HOSTNAME, LITMUS_EDGE_ACCESS_ACCOUNT_TOKEN,
+# and LITMUS_EDGE_EXTERNAL=true. For inside-LE mode (default), only LITMUS_EDGE_API_TOKEN
+# is needed for topic autocomplete.
 ```
 
 ## Build

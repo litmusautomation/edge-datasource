@@ -24,7 +24,7 @@ Grafana datasource plugin for Litmus Edge that enables real-time data streaming 
 ## Environment Setup
 
 - Node.js 22+ (see `.nvmrc`), Go version from `go.mod`, Mage, Docker with Compose v2
-- Copy `.env.example` to `.env` and set `LITMUS_EDGE_HOSTNAME` and `LITMUS_EDGE_ACCESS_ACCOUNT_TOKEN`
+- Copy `.env.example` to `.env`. For external mode: set `LITMUS_EDGE_EXTERNAL=true`, `LITMUS_EDGE_HOSTNAME`, and `LITMUS_EDGE_ACCESS_ACCOUNT_TOKEN`. For inside-LE mode (default): only `LITMUS_EDGE_API_TOKEN` is needed.
 
 ## Commit Style
 

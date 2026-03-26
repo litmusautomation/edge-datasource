@@ -48,24 +48,34 @@ func (m *mockClient) Dispose() {
 }
 
 func TestCheckHealth_Connected(t *testing.T) {
-	ds := NewEdgeDatasource(newMockClient(true), "uid", nil)
+	ds := NewEdgeDatasource(newMockClient(true), "uid", nil, false)
 	res, err := ds.CheckHealth(context.Background(), &backend.CheckHealthRequest{})
 	require.NoError(t, err)
 	assert.Equal(t, backend.HealthStatusOk, res.Status)
 	assert.Contains(t, res.Message, "Connected to the Edge")
 }
 
-func TestCheckHealth_Disconnected(t *testing.T) {
-	ds := NewEdgeDatasource(newMockClient(false), "uid", nil)
+func TestCheckHealth_DisconnectedInsideLE(t *testing.T) {
+	ds := NewEdgeDatasource(newMockClient(false), "uid", nil, false)
 	res, err := ds.CheckHealth(context.Background(), &backend.CheckHealthRequest{})
 	require.NoError(t, err)
-	assert.Contains(t, res.Message, "NATS Proxy is enabled")
 	assert.Equal(t, backend.HealthStatusError, res.Status)
+	assert.Contains(t, res.Message, "Docker bridge network")
+	assert.Contains(t, res.Message, "switch to External mode")
+}
+
+func TestCheckHealth_DisconnectedExternal(t *testing.T) {
+	ds := NewEdgeDatasource(newMockClient(false), "uid", nil, true)
+	res, err := ds.CheckHealth(context.Background(), &backend.CheckHealthRequest{})
+	require.NoError(t, err)
+	assert.Equal(t, backend.HealthStatusError, res.Status)
+	assert.Contains(t, res.Message, "configured hostname")
+	assert.Contains(t, res.Message, "token has NATS Proxy read access")
 }
 
 func TestCheckHealth_DeviceHubOk(t *testing.T) {
 	hub := &mockDeviceHub{topics: []string{"topic.a"}}
-	ds := NewEdgeDatasource(newMockClient(true), "uid", hub)
+	ds := NewEdgeDatasource(newMockClient(true), "uid", hub, false)
 	res, err := ds.CheckHealth(context.Background(), &backend.CheckHealthRequest{})
 	require.NoError(t, err)
 	assert.Equal(t, backend.HealthStatusOk, res.Status)
@@ -74,7 +84,7 @@ func TestCheckHealth_DeviceHubOk(t *testing.T) {
 
 func TestCheckHealth_DeviceHubUnauthorized(t *testing.T) {
 	hub := &mockDeviceHub{err: edge.ErrUnauthorized}
-	ds := NewEdgeDatasource(newMockClient(true), "uid", hub)
+	ds := NewEdgeDatasource(newMockClient(true), "uid", hub, false)
 	res, err := ds.CheckHealth(context.Background(), &backend.CheckHealthRequest{})
 	require.NoError(t, err)
 	assert.Equal(t, backend.HealthStatusError, res.Status)
@@ -83,7 +93,7 @@ func TestCheckHealth_DeviceHubUnauthorized(t *testing.T) {
 
 func TestCheckHealth_DeviceHubUnreachable(t *testing.T) {
 	hub := &mockDeviceHub{err: assert.AnError}
-	ds := NewEdgeDatasource(newMockClient(true), "uid", hub)
+	ds := NewEdgeDatasource(newMockClient(true), "uid", hub, false)
 	res, err := ds.CheckHealth(context.Background(), &backend.CheckHealthRequest{})
 	require.NoError(t, err)
 	assert.Equal(t, backend.HealthStatusError, res.Status)
@@ -98,19 +108,19 @@ func TestNewEdgeInstance_InvalidSettings(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestNewEdgeInstance_EmptySettings(t *testing.T) {
-	// Valid JSON but no hostname/token → NATS connect should fail.
-	data, err := json.Marshal(map[string]string{"hostname": ""})
+func TestNewEdgeInstance_ExternalEmptySettings(t *testing.T) {
+	// External mode with no hostname/token → should fail validation.
+	data, err := json.Marshal(map[string]interface{}{"externalEdge": true, "hostname": ""})
 	require.NoError(t, err)
 	settings := backend.DataSourceInstanceSettings{
 		JSONData:                data,
 		DecryptedSecureJSONData: map[string]string{"token": ""},
 	}
 	_, err = NewEdgeInstance(context.Background(), settings)
-	require.Error(t, err, "expected error for empty NATS settings")
+	require.Error(t, err, "expected error for empty external NATS settings")
 }
 
-func TestGetSettings_Validation(t *testing.T) {
+func TestGetSettings_ExternalValidation(t *testing.T) {
 	tests := []struct {
 		name         string
 		jsonData     string
@@ -120,25 +130,25 @@ func TestGetSettings_Validation(t *testing.T) {
 		wantAPIToken string
 	}{
 		{
-			name:     "missing hostname",
-			jsonData: `{"hostname": ""}`,
+			name:     "external: missing hostname",
+			jsonData: `{"externalEdge": true, "hostname": ""}`,
 			token:    "valid-token",
-			wantErr:  "hostname is required",
+			wantErr:  "hostname is required in external mode",
 		},
 		{
-			name:     "missing token",
-			jsonData: `{"hostname": "192.168.1.1"}`,
+			name:     "external: missing token",
+			jsonData: `{"externalEdge": true, "hostname": "192.168.1.1"}`,
 			token:    "",
-			wantErr:  "Access Account token is required",
+			wantErr:  "Access Account token is required in external mode",
 		},
 		{
-			name:     "valid settings without apiToken",
-			jsonData: `{"hostname": "192.168.1.1"}`,
+			name:     "external: valid settings without apiToken",
+			jsonData: `{"externalEdge": true, "hostname": "192.168.1.1"}`,
 			token:    "valid-token",
 		},
 		{
-			name:         "valid settings with apiToken",
-			jsonData:     `{"hostname": "192.168.1.1"}`,
+			name:         "external: valid settings with apiToken",
+			jsonData:     `{"externalEdge": true, "hostname": "192.168.1.1"}`,
 			token:        "valid-token",
 			apiToken:     "my-api-token",
 			wantAPIToken: "my-api-token",
@@ -165,5 +175,22 @@ func TestGetSettings_Validation(t *testing.T) {
 				assert.Equal(t, tt.wantAPIToken, apiToken)
 			}
 		})
+	}
+}
+
+func TestGetSettings_InsideLE(t *testing.T) {
+	// Inside-LE mode calls ResolveGatewayHost() which reads /proc/net/route.
+	// In CI/test environments this may fail — that's expected; we just verify
+	// that hostname and token are NOT required for inside-LE mode.
+	s := backend.DataSourceInstanceSettings{
+		JSONData:                []byte(`{"externalEdge": false}`),
+		DecryptedSecureJSONData: map[string]string{},
+	}
+	opts, _, err := getSettings(s)
+	if err != nil {
+		assert.Contains(t, err.Error(), "could not detect gateway host")
+	} else {
+		assert.NotEmpty(t, opts.Hostname, "hostname should be resolved from gateway")
+		assert.Empty(t, opts.Token, "token should be empty in inside-LE mode")
 	}
 }

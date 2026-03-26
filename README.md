@@ -1,139 +1,88 @@
 # Litmus Edge data source for Grafana
 
-A Grafana datasource plugin that subscribes to NATS topics on a [Litmus Edge](https://litmus.io) instance and streams the data into dashboard panels in real time.
-
-This is a live-only plugin. It does not query or store historical data.
-
-[Watch Demo](https://github.com/user-attachments/assets/934e18e8-e89d-42eb-8455-75010db3d641)
+Real-time data streaming from [Litmus Edge](https://litmus.io) into Grafana. The plugin subscribes to NATS topics and pushes live frames into dashboard panels — no polling, no historical queries.
 
 ![Litmus Data Source](https://github.com/litmusautomation/edge-datasource/raw/main/img/le-datasource.gif)
 
-## Requirements
+## Quick start
 
-- Grafana v12.2+
-- Litmus Edge v3.16+
-- A [Litmus Edge Access Account](https://docs.litmus.io/litmusedge/product-features/system/access-control/tokens/create-api-account) with a token that has NATS Proxy read access
-- Network connectivity from Grafana to the Litmus Edge instance on port 4222 (NATS)
+**Grafana v12.2+** and **Litmus Edge v3.16+** required.
 
-> [!NOTE]
-> The [NATS Proxy](https://docs.litmus.io/litmusedge/product-features/system/access-control/tokens#nats-proxy) must be enabled on the Litmus Edge instance and the Access Account token needs read access to the topics you want to stream.
+### Running inside Litmus Edge
 
-## Configure the data source
+When deployed as a container on Litmus Edge, the plugin works out of the box — it auto-detects the host from the Docker bridge network and connects to NATS without credentials.
 
-[Add a new data source](https://grafana.com/docs/grafana/latest/datasources/add-a-data-source/) and select Litmus Edge.
+[Add the data source](https://grafana.com/docs/grafana/latest/datasources/add-a-data-source/), select **Litmus Edge**, and click **Save & test**. That's it.
 
-| Field                | What to enter                              | Example                        |
-| -------------------- | ------------------------------------------ | ------------------------------ |
-| Hostname             | Hostname or IP of the Litmus Edge instance | `172.17.0.1`                   |
-| Access Account Token | Token with NATS Proxy read access          | _(stored securely by Grafana)_ |
+> Optionally, provide an **API token** to enable topic autocomplete in the query editor.
 
-**Hostname:** the plugin uses the host for NATS on port 4222 (any `:port` in this field is ignored for that connection). If Litmus Edge’s HTTPS UI uses a non-default port, use `host:port` so topic autocomplete can reach the API (for example `172.17.0.1:8443`).
+### Connecting to an external Litmus Edge
 
-Click "Save & test". If the connection works, you'll see "Connected to the Edge".
+Toggle **External Litmus Edge** on and fill in:
 
-![Data Source Configuration](https://github.com/litmusautomation/edge-datasource/raw/main/img/le-datasource-config.png)
+| Field | Description |
+| --- | --- |
+| **Hostname** | IP or hostname of the Litmus Edge instance (e.g. `172.17.0.1`) |
+| **Access Account Token** | Token with [NATS Proxy](https://docs.litmus.io/litmusedge/product-features/system/access-control/tokens#nats-proxy) read access |
 
-## Streaming data
+The plugin connects to NATS on port 4222. Any `:port` in the hostname field is stripped for the NATS connection but used for the DeviceHub API (e.g. `172.17.0.1:8443` when HTTPS runs on a non-default port).
 
-Add a panel, pick the Litmus Edge data source, and type in a topic, the dot-separated NATS subject published by Litmus Edge:
+Click **Save & test** — you should see "Connected to the Edge".
+
+## Usage
+
+Add a panel, pick the Litmus Edge data source, and enter a NATS topic:
 
 ```
 devicehub.alias.demo.bearing_temperature
 ```
 
-The plugin subscribes to that topic and pushes frames to the panel once per second.
+The plugin subscribes and pushes frames once per second. Each query row handles one topic — add more rows for multiple topics.
 
-![Query Configuration](https://github.com/litmusautomation/edge-datasource/raw/main/img/le-datasource-query.png)
+**Template variables** work in the topic field (`$site.$area.$line.$sensor`) and resolve before each query.
 
 ### Data types
 
-The plugin parses JSON payloads and maps values to Grafana field types:
+| Payload | Grafana type |
+| --- | --- |
+| Number | Float64 |
+| String | String |
+| Boolean | Boolean |
+| Null | Nullable |
+| JSON array / nested object | JSON (use "Extract Fields" transformation) |
 
-| Payload type       | Grafana field type                             |
-| ------------------ | ---------------------------------------------- |
-| Number             | Float64                                        |
-| String             | String                                         |
-| Boolean            | Boolean                                        |
-| Null               | Nullable field                                 |
-| JSON array         | JSON                                           |
-| Nested JSON object | JSON (use the "Extract Fields" transformation) |
+Every frame includes a `Time` field sourced from the payload's `timestamp` (Unix ms) or the arrival time. DeviceHub messages also expose metadata: `tagName`, `deviceName`, `deviceId`, `datatype`, `description`, `registerId`.
 
-Every frame includes a `Time` field. If the payload has a `timestamp` field (Unix milliseconds), that value is used. Otherwise the plugin uses the arrival time.
+### Labels in legends
 
-For DeviceHub (DH) tag messages, the plugin extracts metadata too: `tagName`, `deviceName`, `deviceId`, `datatype`, `description`, and `registerId`.
-
-### Template variables
-
-Dashboard variables work in the topic field:
-
-```
-$site.$area.$line.$sensor
-```
-
-They're resolved before each query runs, so panels update when you change a variable.
-
-### Showing labels in legend and tooltip
-
-DH metadata labels are preserved (for example `deviceName`, `tagName`, `deviceId`, `topic`).
-
-In panel **Field > Standard options > Display name**, use label variables like:
+Use label variables in **Field > Standard options > Display name**:
 
 ```
 ${__field.labels.deviceName}.${__field.labels.tagName}
 ```
 
-Examples:
-
-```
-${__field.labels.topic}
-${__field.name} (${__field.labels.deviceId})
-```
-
-### Multiple topics
-
-Each query row subscribes to one topic. To stream several topics, add more query rows in the same panel. They're independent, so a failure in one won't affect the others.
-
 ## Limitations
 
-- Live data only. There is no historical query support. Use a time-series database for that.
-- No wildcard topics. `*` and `>` are not supported. Each query needs an exact topic.
-- One topic per query. For multiple topics, add multiple query rows.
-- 1-second resolution. Messages are batched and sent to the panel once per second.
-- 10,000-message buffer per topic. If a topic produces more than that between sends, the excess is dropped and a warning is logged.
-
-## What it supports
-
-| Feature             | Supported |
-| ------------------- | --------- |
-| Metrics (streaming) | Yes       |
-| Template variables  | Yes       |
-| Alerting            | No        |
-| Annotations         | No        |
-| Logs                | No        |
-| Historical queries  | No        |
+- **Live data only** — no historical queries. Use a time-series database for that.
+- **No wildcard topics** — `*` and `>` are not supported.
+- **One topic per query** — add multiple query rows for multiple topics.
+- **1 s resolution** — messages are batched once per second.
+- **10 000-message buffer** — excess messages are dropped with a log warning.
 
 ## Troubleshooting
 
-### "Save & test" fails with a connection error
-
-Check three things: can Grafana reach the Litmus Edge host on port 4222? Is the NATS Proxy enabled on the Edge instance? Is the Access Account token valid and not expired?
-
-### Panel shows "No data"
-
-The topic must be the exact NATS subject; wildcards won't work. Make sure the device is actually publishing on that topic. You can also check Grafana server logs for `"Topic not found"` or `"Failed to convert topic to data frame"` messages.
-
-### Stale data after a reconnection
-
-The plugin reconnects to NATS automatically. NATS buffers messages while disconnected, so you might see a burst of old data when it comes back. Refresh the dashboard if the panel looks off.
-
-### "Messages dropped (buffer full)" in logs
-
-The topic is getting more than 10,000 messages per second. Subscribe to a more specific topic, or filter at the source.
+| Problem | What to check |
+| --- | --- |
+| **Save & test fails** (inside LE) | Can the container reach the host on port 4222? Try switching to External mode. |
+| **Save & test fails** (external) | Is the host reachable on port 4222? Is the NATS Proxy enabled? Is the token valid? |
+| **No data** | Topic must be an exact NATS subject — no wildcards. Verify the device is publishing. Check Grafana logs for `"Topic not found"`. |
+| **Stale data after reconnect** | NATS buffers messages while disconnected. Refresh the dashboard. |
+| **"Messages dropped"** | Topic exceeds 10 000 msg/s. Subscribe to a more specific topic. |
 
 ### Rotating credentials
 
-Tokens are stored in Grafana's [secure JSON data](https://grafana.com/docs/grafana/latest/administration/provisioning/#datasources) and are never sent to the browser after initial setup. To rotate, edit the data source, enter the new token, and hit "Save & test".
+Tokens are stored in Grafana's [secure JSON data](https://grafana.com/docs/grafana/latest/administration/provisioning/#datasources) and never sent to the browser after setup. Edit the data source, enter the new token, and Save & test.
 
 ## Contributing
 
-See [CONTRIBUTING.md](https://github.com/litmusautomation/edge-datasource/blob/main/CONTRIBUTING.md) for development setup, build commands, and how to run tests.
+See [CONTRIBUTING.md](https://github.com/litmusautomation/edge-datasource/blob/main/CONTRIBUTING.md).

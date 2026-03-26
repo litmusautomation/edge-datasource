@@ -17,8 +17,9 @@
     "up": "docker compose up --build -d",
     "down": "docker compose down -v",
     "restart": "docker compose restart",
-    "sign": "npx --yes @grafana/sign-plugin@latest",
-    "server": "docker compose up --build"
+    "sign": "npx --yes @grafana/sign-plugin@latest --rootUrls \"$ROOT_URLS\"",
+    "server": "docker compose up --build",
+    "docker:push-dev": "bash scripts/docker-push-dev.sh"
   },
   "author": "Litmus",
   "license": "Apache-2.0",

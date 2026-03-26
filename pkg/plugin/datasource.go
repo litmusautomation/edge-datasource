@@ -42,7 +42,7 @@ func NewEdgeInstance(_ context.Context, s backend.DataSourceInstanceSettings) (i
 		deviceHub = edge.NewDeviceHubClient(settings.Hostname, apiToken)
 	}
 
-	return NewEdgeDatasource(client, s.UID, deviceHub), nil
+	return NewEdgeDatasource(client, s.UID, deviceHub, settings.ExternalEdge), nil
 }
 
 func getSettings(s backend.DataSourceInstanceSettings) (*edge.ConnectionOptions, string, error) {
@@ -56,11 +56,20 @@ func getSettings(s backend.DataSourceInstanceSettings) (*edge.ConnectionOptions,
 		opts.Token = token
 	}
 
-	if opts.Hostname == "" {
-		return nil, "", fmt.Errorf("hostname is required")
-	}
-	if opts.Token == "" {
-		return nil, "", fmt.Errorf("Access Account token is required")
+	if opts.ExternalEdge {
+		if opts.Hostname == "" {
+			return nil, "", fmt.Errorf("hostname is required in external mode")
+		}
+		if opts.Token == "" {
+			return nil, "", fmt.Errorf("Access Account token is required in external mode")
+		}
+	} else {
+		gateway, err := edge.ResolveGatewayHost()
+		if err != nil {
+			return nil, "", fmt.Errorf("could not detect gateway host: %w (switch to External mode and provide hostname manually)", err)
+		}
+		opts.Hostname = gateway
+		opts.Token = "" // no auth needed from docker0 whitelist
 	}
 
 	apiToken := s.DecryptedSecureJSONData["apiToken"]
@@ -72,13 +81,15 @@ type EdgeDatasource struct {
 	Client        edge.Client
 	channelPrefix string
 	deviceHub     edge.DeviceHubClient
+	externalEdge  bool
 }
 
-func NewEdgeDatasource(client edge.Client, uid string, deviceHub edge.DeviceHubClient) *EdgeDatasource {
+func NewEdgeDatasource(client edge.Client, uid string, deviceHub edge.DeviceHubClient, externalEdge bool) *EdgeDatasource {
 	return &EdgeDatasource{
 		Client:        client,
 		channelPrefix: path.Join("ds", uid),
 		deviceHub:     deviceHub,
+		externalEdge:  externalEdge,
 	}
 }
 
