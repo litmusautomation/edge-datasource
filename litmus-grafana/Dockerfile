@@ -14,4 +14,10 @@ COPY --chown=grafana:root litmus-grafana/provisioning/ /etc/grafana/provisioning
 # Signed plugin (private signature, localhost rootUrls)
 COPY --chown=grafana:root dist/ /var/lib/grafana/plugins/litmus-edge-datasource/
 
-ENV GF_SERVER_ROOT_URL=http://localhost:3000
+# Datasource defaults — inside-LE mode, no hostname/token needed.
+# Override at runtime with -e LITMUS_EDGE_EXTERNAL=true etc.
+ENV GF_SERVER_ROOT_URL=http://localhost:3000 \
+    LITMUS_EDGE_EXTERNAL=false \
+    LITMUS_EDGE_HOSTNAME= \
+    LITMUS_EDGE_ACCESS_ACCOUNT_TOKEN= \
+    LITMUS_EDGE_API_TOKEN=

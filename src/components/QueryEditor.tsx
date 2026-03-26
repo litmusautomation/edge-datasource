@@ -187,6 +187,7 @@ export function QueryEditor({ query, onChange, onRunQuery, datasource }: Props) 
               onInputChange={onSelectInputChange}
               onChange={onTopicSelect}
               onBlur={onInputBlur}
+              menuPlacement="top"
               noOptionsMessage={noOptionsMessage}
               defaultOptions={false}
               allowCustomValue={false}

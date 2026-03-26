@@ -22,8 +22,8 @@ datasources:
     version: 1
     editable: true
     jsonData:
-      externalEdge: ${LITMUS_EDGE_EXTERNAL:-false}
-      hostname: ${LITMUS_EDGE_HOSTNAME:-}
+      externalEdge: ${LITMUS_EDGE_EXTERNAL}
+      hostname: ${LITMUS_EDGE_HOSTNAME}
     secureJsonData:
-      token: ${LITMUS_EDGE_ACCESS_ACCOUNT_TOKEN:-}
-      apiToken: ${LITMUS_EDGE_API_TOKEN:-}
+      token: ${LITMUS_EDGE_ACCESS_ACCOUNT_TOKEN}
+      apiToken: ${LITMUS_EDGE_API_TOKEN}
