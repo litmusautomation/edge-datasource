@@ -35,7 +35,7 @@ jobs:
         run: go install github.com/magefile/mage@latest
 
       - name: Build frontend
-        run: npm ci && npm run build
+        run: npm ci --no-audit --no-fund && npm run build
 
       - name: Build backend
         run: mage build:linux && chmod 0755 dist/gpx_edge_linux_amd64
