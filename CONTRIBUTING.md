@@ -17,19 +17,23 @@ The project uses [Grafana Plugin Tools](https://grafana.com/developers/plugin-to
 npm install
 
 cp .env.example .env
-# For external Litmus Edge: set LITMUS_EDGE_HOSTNAME, LITMUS_EDGE_ACCESS_ACCOUNT_TOKEN,
-# and LITMUS_EDGE_EXTERNAL=true. For inside-LE mode (default), only LITMUS_EDGE_API_TOKEN
-# is needed for topic autocomplete.
+# For external Litmus Edge: set EDGE_HOSTNAME (Litmus Edge address),
+# EDGE_ACCESS_ACCOUNT_TOKEN, and EDGE_EXTERNAL=true.
+# Set EDGE_NATS_PROXY_PORT if the live stream does not use 4222.
+# For inside-LE mode (default), EDGE_TOKEN is optional but recommended for topic discovery.
 ```
 
 ## Build
 
 ```bash
-# Frontend (outputs to dist/)
+# Full plugin build (frontend + backend)
 npm run build
 
-# Backend, Linux amd64 only (outputs binary to dist/)
-mage build:linux
+# Frontend only (outputs to dist/)
+npm run build:frontend
+
+# Backend only, Linux amd64 (outputs binary to dist/). This script also resolves `mage` from common Go bin locations.
+npm run build:backend
 ```
 
 Don't use `mage buildAll`. It cross-compiles for every platform and takes much longer.
@@ -63,9 +67,30 @@ npm run test:ci      # Jest
 mage test            # Go tests
 ```
 
+## Plugin validation
+
+Use Grafana's Dockerized plugin validator against the current build output:
+
+```bash
+npm run validate:plugin
+```
+
+To validate a release archive instead:
+
+```bash
+npm run validate:plugin -- https://github.com/litmusautomation/edge-datasource/releases/download/v0.1.0/litmus-edge-datasource-0.1.0.zip
+```
+
+Optional environment variables:
+
+- `VALIDATOR_FLAGS` — extra validator flags such as `-strict`
+- `VALIDATOR_SOURCE_CODE_URI` — override the source code URI passed to the validator
+
+The first run can take a minute while Docker layers and validator analyzers initialize.
+
 ## E2E tests
 
-These need a running Grafana with a reachable Litmus Edge device (configured in `.env`).
+These need a running Grafana with a reachable Litmus Edge device configured in `.env`.
 
 ```bash
 npm run e2e:install  # first time only, installs Chromium

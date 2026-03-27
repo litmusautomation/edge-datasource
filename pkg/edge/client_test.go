@@ -444,6 +444,34 @@ func TestStripPort(t *testing.T) {
 	}
 }
 
+func TestNormalizeNATSProxyPort(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		want    string
+		wantErr string
+	}{
+		{name: "default", input: "", want: DefaultNATSProxyPort},
+		{name: "trimmed", input: " 5222 ", want: "5222"},
+		{name: "zero", input: "0", wantErr: "must be a number between 1 and 65535"},
+		{name: "too large", input: "65536", wantErr: "must be a number between 1 and 65535"},
+		{name: "not a number", input: "abc", wantErr: "must be a number between 1 and 65535"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := normalizeNATSProxyPort(tt.input)
+			if tt.wantErr != "" {
+				require.ErrorContains(t, err, tt.wantErr)
+				return
+			}
+
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
 func TestTopicMap_SubscriptionMutex(t *testing.T) {
 	tm := &TopicMap{
 		subscriptions: make(map[string]*nats.Subscription),

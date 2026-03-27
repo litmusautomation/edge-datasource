@@ -13,8 +13,8 @@ import (
 
 // mockClient implements edge.Client for tests without a real NATS connection.
 type mockClient struct {
-	connected   bool
-	subscribed  map[string]bool
+	connected    bool
+	subscribed   map[string]bool
 	subscribeErr error
 }
 
@@ -48,7 +48,7 @@ func (m *mockClient) Dispose() {
 }
 
 func TestCheckHealth_Connected(t *testing.T) {
-	ds := NewEdgeDatasource(newMockClient(true), "uid", nil, false)
+	ds := NewEdgeDatasource(newMockClient(true), "uid", nil, false, edge.DefaultNATSProxyPort)
 	res, err := ds.CheckHealth(context.Background(), &backend.CheckHealthRequest{})
 	require.NoError(t, err)
 	assert.Equal(t, backend.HealthStatusOk, res.Status)
@@ -56,7 +56,7 @@ func TestCheckHealth_Connected(t *testing.T) {
 }
 
 func TestCheckHealth_DisconnectedInsideLE(t *testing.T) {
-	ds := NewEdgeDatasource(newMockClient(false), "uid", nil, false)
+	ds := NewEdgeDatasource(newMockClient(false), "uid", nil, false, edge.DefaultNATSProxyPort)
 	res, err := ds.CheckHealth(context.Background(), &backend.CheckHealthRequest{})
 	require.NoError(t, err)
 	assert.Equal(t, backend.HealthStatusError, res.Status)
@@ -65,17 +65,18 @@ func TestCheckHealth_DisconnectedInsideLE(t *testing.T) {
 }
 
 func TestCheckHealth_DisconnectedExternal(t *testing.T) {
-	ds := NewEdgeDatasource(newMockClient(false), "uid", nil, true)
+	ds := NewEdgeDatasource(newMockClient(false), "uid", nil, true, "5222")
 	res, err := ds.CheckHealth(context.Background(), &backend.CheckHealthRequest{})
 	require.NoError(t, err)
 	assert.Equal(t, backend.HealthStatusError, res.Status)
-	assert.Contains(t, res.Message, "configured hostname")
+	assert.Contains(t, res.Message, "configured address")
 	assert.Contains(t, res.Message, "token has NATS Proxy read access")
+	assert.Contains(t, res.Message, "Configured NATS Proxy port: 5222")
 }
 
 func TestCheckHealth_DeviceHubOk(t *testing.T) {
 	hub := &mockDeviceHub{topics: []string{"topic.a"}}
-	ds := NewEdgeDatasource(newMockClient(true), "uid", hub, false)
+	ds := NewEdgeDatasource(newMockClient(true), "uid", hub, false, edge.DefaultNATSProxyPort)
 	res, err := ds.CheckHealth(context.Background(), &backend.CheckHealthRequest{})
 	require.NoError(t, err)
 	assert.Equal(t, backend.HealthStatusOk, res.Status)
@@ -84,16 +85,16 @@ func TestCheckHealth_DeviceHubOk(t *testing.T) {
 
 func TestCheckHealth_DeviceHubUnauthorized(t *testing.T) {
 	hub := &mockDeviceHub{err: edge.ErrUnauthorized}
-	ds := NewEdgeDatasource(newMockClient(true), "uid", hub, false)
+	ds := NewEdgeDatasource(newMockClient(true), "uid", hub, false, edge.DefaultNATSProxyPort)
 	res, err := ds.CheckHealth(context.Background(), &backend.CheckHealthRequest{})
 	require.NoError(t, err)
 	assert.Equal(t, backend.HealthStatusError, res.Status)
-	assert.Contains(t, res.Message, "API token is invalid or expired")
+	assert.Contains(t, res.Message, "EDGE Token is invalid or expired")
 }
 
 func TestCheckHealth_DeviceHubUnreachable(t *testing.T) {
 	hub := &mockDeviceHub{err: assert.AnError}
-	ds := NewEdgeDatasource(newMockClient(true), "uid", hub, false)
+	ds := NewEdgeDatasource(newMockClient(true), "uid", hub, false, edge.DefaultNATSProxyPort)
 	res, err := ds.CheckHealth(context.Background(), &backend.CheckHealthRequest{})
 	require.NoError(t, err)
 	assert.Equal(t, backend.HealthStatusError, res.Status)
@@ -128,12 +129,14 @@ func TestGetSettings_ExternalValidation(t *testing.T) {
 		apiToken     string
 		wantErr      string
 		wantAPIToken string
+		wantHost     string
+		wantNATSPort string
 	}{
 		{
 			name:     "external: missing hostname",
 			jsonData: `{"externalEdge": true, "hostname": ""}`,
 			token:    "valid-token",
-			wantErr:  "hostname is required when connecting to an external Litmus Edge",
+			wantErr:  "Litmus Edge address is required when connecting to an external Litmus Edge",
 		},
 		{
 			name:     "external: missing token",
@@ -142,9 +145,11 @@ func TestGetSettings_ExternalValidation(t *testing.T) {
 			wantErr:  "Access Account token is required when connecting to an external Litmus Edge",
 		},
 		{
-			name:     "external: valid settings without apiToken",
-			jsonData: `{"externalEdge": true, "hostname": "192.168.1.1"}`,
-			token:    "valid-token",
+			name:         "external: valid settings without apiToken",
+			jsonData:     `{"externalEdge": true, "hostname": "192.168.1.1"}`,
+			token:        "valid-token",
+			wantHost:     "192.168.1.1",
+			wantNATSPort: edge.DefaultNATSProxyPort,
 		},
 		{
 			name:         "external: valid settings with apiToken",
@@ -152,6 +157,15 @@ func TestGetSettings_ExternalValidation(t *testing.T) {
 			token:        "valid-token",
 			apiToken:     "my-api-token",
 			wantAPIToken: "my-api-token",
+			wantHost:     "192.168.1.1",
+			wantNATSPort: edge.DefaultNATSProxyPort,
+		},
+		{
+			name:         "external: custom nats proxy port",
+			jsonData:     `{"externalEdge": true, "hostname": "192.168.1.1:8443", "natsProxyPort": "5222"}`,
+			token:        "valid-token",
+			wantHost:     "192.168.1.1:8443",
+			wantNATSPort: "5222",
 		},
 	}
 
@@ -170,9 +184,14 @@ func TestGetSettings_ExternalValidation(t *testing.T) {
 				require.ErrorContains(t, err, tt.wantErr)
 			} else {
 				require.NoError(t, err)
-				assert.Equal(t, "192.168.1.1", opts.Hostname)
+				assert.Equal(t, tt.wantHost, opts.Hostname)
 				assert.Equal(t, "valid-token", opts.Token)
 				assert.Equal(t, tt.wantAPIToken, apiToken)
+				if tt.wantNATSPort == "" {
+					assert.Equal(t, edge.DefaultNATSProxyPort, opts.NATSProxyPort)
+				} else {
+					assert.Equal(t, tt.wantNATSPort, opts.NATSProxyPort)
+				}
 			}
 		})
 	}
@@ -211,7 +230,7 @@ func TestGetSettings_InsideLE(t *testing.T) {
 	}
 	opts, _, err := getSettings(s)
 	if err != nil {
-		assert.Contains(t, err.Error(), "could not auto-detect the Litmus Edge host")
+		assert.Contains(t, err.Error(), "could not auto-detect the Litmus Edge address")
 	} else {
 		assert.NotEmpty(t, opts.Hostname, "hostname should be resolved from gateway")
 		assert.Empty(t, opts.Token, "token should be empty in inside-LE mode")

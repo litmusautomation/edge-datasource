@@ -7,8 +7,8 @@
 - **Real-time data streaming** — subscribe to NATS topics on Litmus Edge and stream live frames into Grafana panels via Grafana Live (WebSocket). No polling, no historical database required.
 - **DeviceHub support** — automatically parse DeviceHub messages and expose metadata labels (`tagName`, `deviceName`, `deviceId`, `datatype`, `description`, `registerId`) for use in legends and transformations.
 - **Inside-LE connection mode** — when deployed on Litmus Edge, the plugin auto-discovers the host via the Docker bridge network and connects to NATS without credentials. Zero configuration required.
-- **External connection mode** — connect to a remote Litmus Edge instance with hostname and Access Account token.
-- **Topic autocomplete** — query available topics from the Litmus Edge DeviceHub API directly in the query editor.
+- **External connection mode** — connect to a remote Litmus Edge instance with a Litmus Edge address, NATS Proxy port, and Access Account token.
+- **Topic discovery** — use an Autocomplete Token to query available topics from the Litmus Edge DeviceHub API directly in the query editor.
 - **Template variable support** — use Grafana variables in topic fields (`$site.$area.$line.$sensor`) for reusable dashboards across sites and production lines.
 - **litmus-grafana Docker image** — preconfigured Grafana image with the Litmus Edge datasource and curated visualization plugins (HTML Graphics, Business Variable, Business Input, Plotly.js), provisioned and ready to run.
 

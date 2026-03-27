@@ -4,8 +4,9 @@ Grafana datasource plugin for Litmus Edge that enables real-time data streaming 
 
 ## Build & Development Commands
 
-- **Frontend build:** `npm run build`
-- **Backend build:** `mage build:linux` (Linux amd64 only — do NOT use `mage buildAll`, it cross-compiles all platforms and is much slower)
+- **Full build:** `npm run build`
+- **Frontend build:** `npm run build:frontend`
+- **Backend build:** `npm run build:backend` (Linux amd64 only — do NOT use `mage buildAll`, it cross-compiles all platforms and is much slower)
 - **Frontend dev (watch):** `npm run dev`
 - **Run Grafana with plugin:** `npm run server` (or `npm run up` for detached)
 - **Typecheck:** `npm run typecheck`
@@ -24,7 +25,7 @@ Grafana datasource plugin for Litmus Edge that enables real-time data streaming 
 ## Environment Setup
 
 - Node.js 22+ (see `.nvmrc`), Go version from `go.mod`, Mage, Docker with Compose v2
-- Copy `.env.example` to `.env`. For external mode: set `LITMUS_EDGE_EXTERNAL=true`, `LITMUS_EDGE_HOSTNAME`, and `LITMUS_EDGE_ACCESS_ACCOUNT_TOKEN`. For inside-LE mode (default): only `LITMUS_EDGE_API_TOKEN` is needed.
+- Copy `.env.example` to `.env`. For external mode: set `EDGE_EXTERNAL=true`, `EDGE_HOSTNAME`, and `EDGE_ACCESS_ACCOUNT_TOKEN`. Set `EDGE_NATS_PROXY_PORT` if the live stream does not use `4222`. For inside-LE mode (default): only `EDGE_TOKEN` is needed.
 
 ## Commit Style
 

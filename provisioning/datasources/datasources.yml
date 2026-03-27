@@ -1,6 +1,6 @@
 # Dev provisioning — same env vars as the litmus-grafana image.
-# Copy `.env.example` to `.env` and set LITMUS_EDGE_EXTERNAL=true with
-# hostname + token for local development against an external Litmus Edge.
+# Copy `.env.example` to `.env` and set EDGE_EXTERNAL=true with a Litmus
+# Edge address + token for local development against an external Litmus Edge.
 # See also: https://grafana.com/docs/grafana/latest/administration/provisioning/#use-environment-variables-in-provisioning-files
 apiVersion: 1
 
@@ -13,8 +13,9 @@ datasources:
     version: 3
     editable: true
     jsonData:
-      externalEdge: ${LITMUS_EDGE_EXTERNAL}
-      hostname: ${LITMUS_EDGE_HOSTNAME}
+      externalEdge: ${EDGE_EXTERNAL}
+      hostname: ${EDGE_HOSTNAME}
+      natsProxyPort: ${EDGE_NATS_PROXY_PORT}
     secureJsonData:
-      token: ${LITMUS_EDGE_ACCESS_ACCOUNT_TOKEN}
-      apiToken: ${LITMUS_EDGE_API_TOKEN}
+      token: ${EDGE_ACCESS_ACCOUNT_TOKEN}
+      apiToken: ${EDGE_TOKEN}

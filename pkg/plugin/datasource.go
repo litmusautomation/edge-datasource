@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"path"
+	"strings"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/instancemgmt"
@@ -37,12 +38,17 @@ func NewEdgeInstance(_ context.Context, s backend.DataSourceInstanceSettings) (i
 		return nil, err
 	}
 
+	natsProxyPort := settings.NATSProxyPort
+	if natsProxyPort == "" {
+		natsProxyPort = edge.DefaultNATSProxyPort
+	}
+
 	var deviceHub edge.DeviceHubClient
 	if apiToken != "" {
 		deviceHub = edge.NewDeviceHubClient(settings.Hostname, apiToken)
 	}
 
-	return NewEdgeDatasource(client, s.UID, deviceHub, bool(settings.ExternalEdge)), nil
+	return NewEdgeDatasource(client, s.UID, deviceHub, bool(settings.ExternalEdge), natsProxyPort), nil
 }
 
 func getSettings(s backend.DataSourceInstanceSettings) (*edge.ConnectionOptions, string, error) {
@@ -56,10 +62,13 @@ func getSettings(s backend.DataSourceInstanceSettings) (*edge.ConnectionOptions,
 	if token, ok := s.DecryptedSecureJSONData["token"]; ok {
 		opts.Token = token
 	}
+	if strings.TrimSpace(opts.NATSProxyPort) == "" {
+		opts.NATSProxyPort = edge.DefaultNATSProxyPort
+	}
 
 	if bool(opts.ExternalEdge) {
 		if opts.Hostname == "" {
-			return nil, "", fmt.Errorf("hostname is required when connecting to an external Litmus Edge")
+			return nil, "", fmt.Errorf("Litmus Edge address is required when connecting to an external Litmus Edge")
 		}
 		if opts.Token == "" {
 			return nil, "", fmt.Errorf("Access Account token is required when connecting to an external Litmus Edge")
@@ -68,7 +77,7 @@ func getSettings(s backend.DataSourceInstanceSettings) (*edge.ConnectionOptions,
 		gateway, err := edge.ResolveGatewayHost()
 		if err != nil {
 			log.DefaultLogger.Error("Gateway detection failed", "error", err)
-			return nil, "", fmt.Errorf("could not auto-detect the Litmus Edge host — enable External Litmus Edge and provide the hostname manually")
+			return nil, "", fmt.Errorf("could not auto-detect the Litmus Edge address — enable External Litmus Edge and provide the address manually")
 		}
 		opts.Hostname = gateway
 		opts.Token = "" // no auth needed from docker0 whitelist
@@ -84,14 +93,16 @@ type EdgeDatasource struct {
 	channelPrefix string
 	deviceHub     edge.DeviceHubClient
 	externalEdge  bool
+	natsProxyPort string
 }
 
-func NewEdgeDatasource(client edge.Client, uid string, deviceHub edge.DeviceHubClient, externalEdge bool) *EdgeDatasource {
+func NewEdgeDatasource(client edge.Client, uid string, deviceHub edge.DeviceHubClient, externalEdge bool, natsProxyPort string) *EdgeDatasource {
 	return &EdgeDatasource{
 		Client:        client,
 		channelPrefix: path.Join("ds", uid),
 		deviceHub:     deviceHub,
 		externalEdge:  externalEdge,
+		natsProxyPort: natsProxyPort,
 	}
 }
 

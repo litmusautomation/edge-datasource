@@ -14,7 +14,7 @@ import (
 )
 
 // ErrUnauthorized is returned when the DeviceHub API responds with HTTP 401.
-var ErrUnauthorized = errors.New("unauthorized: invalid or expired API token")
+var ErrUnauthorized = errors.New("unauthorized: invalid or expired EDGE Token")
 
 // DeviceHubClient queries the Litmus Edge DeviceHub GraphQL API for topic discovery.
 type DeviceHubClient interface {

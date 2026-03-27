@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useSyncExternalStore } from 'react';
 import { Field, Input, SecretInput, Switch } from '@grafana/ui';
 import {
   DataSourcePluginOptionsEditorProps,
@@ -17,13 +17,52 @@ const API_TOKEN_DOCS =
   'https://docs.litmus.io/litmusedge/product-features/system/access-control/tokens/create-api-token';
 
 const WIDTH = 40;
+/** SecretInput is input (~width×8px) + Reset; use a smaller width on narrow viewports. */
+const SECRET_INPUT_WIDTH_NARROW = 28;
+
+const MQ_STACK_CONNECTION = '(max-width: 768px)';
+const MQ_COMPACT_SECRET = '(max-width: 480px)';
+
+const CONNECTION_FIELD_CELL_STYLE: React.CSSProperties = {
+  flex: '0 0 auto',
+  maxWidth: '100%',
+  minWidth: 0,
+};
+
+/** Single subscription for both breakpoints (primitive snapshot for useSyncExternalStore). */
+function useViewportLayout() {
+  const bits = useSyncExternalStore(
+    (onStoreChange) => {
+      const mqStack = window.matchMedia(MQ_STACK_CONNECTION);
+      const mqCompact = window.matchMedia(MQ_COMPACT_SECRET);
+      const onChange = () => onStoreChange();
+      mqStack.addEventListener('change', onChange);
+      mqCompact.addEventListener('change', onChange);
+      return () => {
+        mqStack.removeEventListener('change', onChange);
+        mqCompact.removeEventListener('change', onChange);
+      };
+    },
+    () => {
+      const mqStack = window.matchMedia(MQ_STACK_CONNECTION);
+      const mqCompact = window.matchMedia(MQ_COMPACT_SECRET);
+      return (mqStack.matches ? 1 : 0) | (mqCompact.matches ? 2 : 0);
+    },
+    () => 0
+  );
+  return {
+    stackConnectionFields: (bits & 1) !== 0,
+    compactSecretInput: (bits & 2) !== 0,
+  };
+}
 
 export function ConfigEditor(props: Props) {
   const { options, onOptionsChange } = props;
   const { jsonData, secureJsonFields } = options;
 
   const externalEdge = !!jsonData.externalEdge;
-  const [autocompleteEnabled, setAutocompleteEnabled] = useState(!!secureJsonFields?.apiToken);
+  const { stackConnectionFields, compactSecretInput } = useViewportLayout();
+  const secretInputWidth = compactSecretInput ? SECRET_INPUT_WIDTH_NARROW : WIDTH;
 
   const onToggleExternalEdge = (e: React.ChangeEvent<HTMLInputElement>) => {
     const enabled = e.currentTarget.checked;
@@ -35,14 +74,6 @@ export function ConfigEditor(props: Props) {
         hostname: enabled ? jsonData.hostname : '',
       },
     });
-  };
-
-  const onToggleAutocomplete = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const enabled = e.currentTarget.checked;
-    setAutocompleteEnabled(enabled);
-    if (!enabled) {
-      updateDatasourcePluginResetOption(props, 'apiToken');
-    }
   };
 
   return (
@@ -58,9 +89,9 @@ export function ConfigEditor(props: Props) {
       <section>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
           <h4 style={{ margin: 0, fontSize: '16px', lineHeight: 1.2, color: 'var(--text-secondary)', fontWeight: 500 }}>
-            Connection
+            Remote Connection
           </h4>
-          <Switch value={externalEdge} onChange={onToggleExternalEdge} aria-label="External Litmus Edge" />
+          <Switch value={externalEdge} onChange={onToggleExternalEdge} aria-label="Connect to remote Litmus Edge" />
         </div>
         <p
           style={{
@@ -77,44 +108,64 @@ export function ConfigEditor(props: Props) {
         {externalEdge && (
           <>
             <Field
-              label="Hostname"
+              label="Litmus Edge Address"
               required
               description={
                 <>
-                  Enter the Litmus Edge host or IP (for example: 172.17.0.1).
-                  <br />
-                  Include a port when needed (for example: 172.17.0.1:8443).
+                  Address of your Litmus Edge instance. Use <code>host</code> or <code>host:port</code>.
                 </>
               }
             >
               <Input
                 width={WIDTH}
                 name="hostname"
-                placeholder="172.17.0.1"
+                placeholder="172.17.0.1 or 172.17.0.1:8443"
                 value={jsonData.hostname || ''}
                 onChange={onUpdateDatasourceJsonDataOption(props, 'hostname')}
               />
             </Field>
-            <Field
-              label="Access Account Token"
-              required
-              description={
-                <>
-                  Token used to access the NATS Proxy.{' '}
-                  <a href={ACCESS_ACCOUNT_DOCS} target="_blank" rel="noreferrer">
-                    Learn more
-                  </a>
-                </>
-              }
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: stackConnectionFields ? 'column' : 'row',
+                gap: '12px',
+                alignItems: 'flex-start',
+              }}
             >
-              <SecretInput
-                width={WIDTH}
-                placeholder="Access Account token"
-                isConfigured={!!secureJsonFields?.token}
-                onReset={() => updateDatasourcePluginResetOption(props, 'token')}
-                onBlur={onUpdateDatasourceSecureJsonDataOption(props, 'token')}
-              />
-            </Field>
+              <div style={CONNECTION_FIELD_CELL_STYLE}>
+                <Field
+                  label="Access Account Token"
+                  required
+                  description={
+                    <>
+                      Token used to access the NATS Proxy.{' '}
+                      <a href={ACCESS_ACCOUNT_DOCS} target="_blank" rel="noreferrer">
+                        Learn more
+                      </a>
+                    </>
+                  }
+                >
+                  <SecretInput
+                    width={secretInputWidth}
+                    placeholder="Access Account token"
+                    isConfigured={!!secureJsonFields?.token}
+                    onReset={() => updateDatasourcePluginResetOption(props, 'token')}
+                    onBlur={onUpdateDatasourceSecureJsonDataOption(props, 'token')}
+                  />
+                </Field>
+              </div>
+              <div style={CONNECTION_FIELD_CELL_STYLE}>
+                <Field label="NATS Proxy Port" description="Port for live data streaming. Default: 4222.">
+                  <Input
+                    width={WIDTH}
+                    name="natsProxyPort"
+                    placeholder="4222"
+                    value={jsonData.natsProxyPort || ''}
+                    onChange={onUpdateDatasourceJsonDataOption(props, 'natsProxyPort')}
+                  />
+                </Field>
+              </div>
+            </div>
           </>
         )}
       </section>
@@ -122,12 +173,17 @@ export function ConfigEditor(props: Props) {
       <hr />
 
       <section>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-          <h4 style={{ margin: 0, fontSize: '16px', lineHeight: 1.2, color: 'var(--text-secondary)', fontWeight: 500 }}>
-            Autocomplete
-          </h4>
-          <Switch value={autocompleteEnabled} onChange={onToggleAutocomplete} aria-label="Enable topic autocomplete" />
-        </div>
+        <h4
+          style={{
+            margin: '0 0 4px 0',
+            fontSize: '16px',
+            lineHeight: 1.2,
+            color: 'var(--text-secondary)',
+            fontWeight: 500,
+          }}
+        >
+          Topic Discovery
+        </h4>
         <p
           style={{
             margin: '0 0 12px 0',
@@ -137,30 +193,28 @@ export function ConfigEditor(props: Props) {
             lineHeight: 1.3,
           }}
         >
-          Suggest topics as you type in the query editor to help you find the right data stream faster.
+          Add an API Token to search available topics as you type in the query editor.
         </p>
 
-        {autocompleteEnabled && (
-          <Field
-            label="API Token"
-            description={
-              <>
-                Create an API token in Access Control &gt; Tokens.{' '}
-                <a href={API_TOKEN_DOCS} target="_blank" rel="noreferrer">
-                  Learn more
-                </a>
-              </>
-            }
-          >
-            <SecretInput
-              width={WIDTH}
-              placeholder="API token"
-              isConfigured={!!secureJsonFields?.apiToken}
-              onReset={() => updateDatasourcePluginResetOption(props, 'apiToken')}
-              onBlur={onUpdateDatasourceSecureJsonDataOption(props, 'apiToken')}
-            />
-          </Field>
-        )}
+        <Field
+          label=""
+          description={
+            <>
+              Optional, but recommended for topic discovery.{' '}
+              <a href={API_TOKEN_DOCS} target="_blank" rel="noreferrer">
+                Learn more
+              </a>
+            </>
+          }
+        >
+          <SecretInput
+            width={secretInputWidth}
+            placeholder="API token"
+            isConfigured={!!secureJsonFields?.apiToken}
+            onReset={() => updateDatasourcePluginResetOption(props, 'apiToken')}
+            onBlur={onUpdateDatasourceSecureJsonDataOption(props, 'apiToken')}
+          />
+        </Field>
       </section>
     </>
   );

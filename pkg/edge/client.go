@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -25,6 +26,8 @@ import (
 // topicTokenPattern validates that each dot-separated token contains only non-whitespace, non-dot characters.
 var topicTokenPattern = regexp.MustCompile(`^[^\s.]+$`)
 
+const DefaultNATSProxyPort = "4222"
+
 type Client interface {
 	Subscribe(string) error
 	Unsubscribe(string) error
@@ -34,9 +37,10 @@ type Client interface {
 }
 
 type ConnectionOptions struct {
-	Hostname     string     `json:"hostname"`
-	Token        string     `json:"token"`
-	ExternalEdge StringBool `json:"externalEdge"`
+	Hostname      string     `json:"hostname"`
+	NATSProxyPort string     `json:"natsProxyPort"`
+	Token         string     `json:"token"`
+	ExternalEdge  StringBool `json:"externalEdge"`
 }
 
 // StringBool handles JSON values that may be a bool or a string ("true"/"false").
@@ -66,9 +70,13 @@ type client struct {
 
 func NewClient(opts ConnectionOptions) (Client, error) {
 	host := stripPort(opts.Hostname)
+	port, err := normalizeNATSProxyPort(opts.NATSProxyPort)
+	if err != nil {
+		return nil, backend.PluginErrorf("invalid NATS Proxy Port: %v", err)
+	}
 	natsURL := &url.URL{
 		Scheme: "nats",
-		Host:   fmt.Sprintf("%s:4222", host),
+		Host:   net.JoinHostPort(host, port),
 	}
 
 	natsOpts := []nats.Option{
@@ -92,7 +100,7 @@ func NewClient(opts ConnectionOptions) (Client, error) {
 	conn, err := nats.Connect(natsURL.String(), natsOpts...)
 	if err != nil {
 		log.DefaultLogger.Error("NATS connection failed", "url", natsURL.Redacted(), "error", err)
-		return nil, backend.DownstreamErrorf("could not connect to the NATS server — check that Litmus Edge is reachable and the NATS Proxy is enabled on port 4222")
+		return nil, backend.DownstreamErrorf("could not connect to the NATS server — check that Litmus Edge is reachable and the NATS Proxy is enabled on port %s", port)
 	}
 
 	log.DefaultLogger.Info("Connected to NATS Server", "hostname", opts.Hostname)
@@ -346,4 +354,21 @@ func stripPort(hostname string) string {
 		return hostname // no port present
 	}
 	return host
+}
+
+func normalizeNATSProxyPort(port string) (string, error) {
+	trimmed := strings.TrimSpace(port)
+	if trimmed == "" {
+		return DefaultNATSProxyPort, nil
+	}
+
+	value, err := strconv.Atoi(trimmed)
+	if err != nil {
+		return "", fmt.Errorf("must be a number between 1 and 65535")
+	}
+	if value < 1 || value > 65535 {
+		return "", fmt.Errorf("must be a number between 1 and 65535")
+	}
+
+	return strconv.Itoa(value), nil
 }

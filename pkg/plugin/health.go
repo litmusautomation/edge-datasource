@@ -13,16 +13,16 @@ import (
 const natsConnectErrorExternal = `Could not connect to Litmus Edge.
 
 Please check:
-• Litmus Edge is reachable at the configured hostname
-• NATS Proxy is enabled (port 4222)
+• Litmus Edge is reachable at the configured address
+• NATS Proxy is enabled and reachable on the configured NATS Proxy port
 • The token has NATS Proxy read access`
 
 const natsConnectErrorInternal = `Could not connect to Litmus Edge.
 
 Please check:
 • This container is running on the Litmus Edge Docker bridge network
-• NATS Proxy is enabled (port 4222)
-If the problem persists, switch to External mode and provide the hostname manually.`
+• NATS Proxy is enabled and reachable on the configured NATS Proxy port
+If the problem persists, switch to External mode and provide the Litmus Edge address manually.`
 
 // CheckHealth handles health checks sent from Grafana to the plugin.
 // The main use case for these health checks is the test button on the
@@ -34,6 +34,7 @@ func (d *EdgeDatasource) CheckHealth(ctx context.Context, req *backend.CheckHeal
 		if d.externalEdge {
 			msg = natsConnectErrorExternal
 		}
+		msg = fmt.Sprintf("%s\n• Configured NATS Proxy port: %s", msg, d.natsProxyPort)
 		return &backend.CheckHealthResult{
 			Status:  backend.HealthStatusError,
 			Message: msg,
@@ -47,11 +48,11 @@ func (d *EdgeDatasource) CheckHealth(ctx context.Context, req *backend.CheckHeal
 		}, nil
 	}
 
-	// Validate the Edge API connection when an API token is configured.
+	// Validate the Edge API connection when an EDGE Token is configured.
 	if _, err := d.deviceHub.SearchTopics(ctx, ""); err != nil {
 		var message string
 		if errors.Is(err, edge.ErrUnauthorized) {
-			message = "Topic autocomplete: API token is invalid or expired"
+			message = "Topic autocomplete: EDGE Token is invalid or expired"
 		} else {
 			message = "Topic autocomplete: could not reach the Edge API"
 		}
