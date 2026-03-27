@@ -2,8 +2,6 @@
 
 Stream live operational data from [Litmus Edge](https://litmus.io) directly into Grafana dashboards. The plugin subscribes to NATS topics on the edge and pushes frames into panels in real time — no polling, no historical database required.
 
-https://github.com/user-attachments/assets/934e18e8-e89d-42eb-8455-75010db3d641
-
 ## Quick start
 
 **Grafana v12.2+** and **Litmus Edge v3.16+** required.
@@ -20,9 +18,9 @@ When deployed as a container on Litmus Edge, the plugin works out of the box —
 
 Toggle **External Litmus Edge** on and provide:
 
-| Field | Description |
-| --- | --- |
-| **Hostname** | IP or hostname of the Litmus Edge instance (e.g. `172.17.0.1`) |
+| Field                    | Description                                                                                                                     |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| **Hostname**             | IP or hostname of the Litmus Edge instance (e.g. `172.17.0.1`)                                                                  |
 | **Access Account Token** | Token with [NATS Proxy](https://docs.litmus.io/litmusedge/product-features/system/access-control/tokens#nats-proxy) read access |
 
 The plugin connects to NATS on port 4222. A `:port` suffix in the hostname is stripped for the NATS connection but preserved for DeviceHub API calls (e.g. `172.17.0.1:8443` when HTTPS runs on a non-default port).
@@ -43,12 +41,12 @@ The plugin subscribes and streams frames once per second. Each query row maps to
 
 ### Data types
 
-| Payload | Grafana type |
-| --- | --- |
-| Number | Float64 |
-| String | String |
-| Boolean | Boolean |
-| Null | Nullable |
+| Payload                    | Grafana type                                   |
+| -------------------------- | ---------------------------------------------- |
+| Number                     | Float64                                        |
+| String                     | String                                         |
+| Boolean                    | Boolean                                        |
+| Null                       | Nullable                                       |
 | JSON array / nested object | JSON (use the "Extract Fields" transformation) |
 
 Every frame includes a `Time` field derived from the payload's `timestamp` (Unix ms), falling back to arrival time when absent. DeviceHub messages also carry metadata labels: `tagName`, `deviceName`, `deviceId`, `datatype`, `description`, and `registerId`.
@@ -71,13 +69,13 @@ ${__field.labels.deviceName}.${__field.labels.tagName}
 
 ## Troubleshooting
 
-| Problem | What to check |
-| --- | --- |
-| **Save & test fails** (inside LE) | Can the container reach the host on port 4222? Try switching to External mode. |
-| **Save & test fails** (external) | Is the host reachable on port 4222? Is the NATS Proxy enabled? Is the token valid? |
-| **No data** | The topic must be an exact NATS subject — no wildcards. Verify the device is publishing and check Grafana logs for `"Topic not found"`. |
-| **Stale data after reconnect** | NATS may buffer messages while disconnected. Refresh the dashboard to clear stale frames. |
-| **"Messages dropped"** | The topic exceeds the 10 000-message buffer. Subscribe to a more specific subject. |
+| Problem                           | What to check                                                                                                                           |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| **Save & test fails** (inside LE) | Can the container reach the host on port 4222? Try switching to External mode.                                                          |
+| **Save & test fails** (external)  | Is the host reachable on port 4222? Is the NATS Proxy enabled? Is the token valid?                                                      |
+| **No data**                       | The topic must be an exact NATS subject — no wildcards. Verify the device is publishing and check Grafana logs for `"Topic not found"`. |
+| **Stale data after reconnect**    | NATS may buffer messages while disconnected. Refresh the dashboard to clear stale frames.                                               |
+| **"Messages dropped"**            | The topic exceeds the 10 000-message buffer. Subscribe to a more specific subject.                                                      |
 
 ### Rotating credentials
 
@@ -86,3 +84,9 @@ Tokens are stored in Grafana's [secure JSON data](https://grafana.com/docs/grafa
 ## Contributing
 
 See [CONTRIBUTING.md](https://github.com/litmusautomation/edge-datasource/blob/main/CONTRIBUTING.md).
+
+## License
+
+Copyright 2026 Litmus Automation, Inc.
+
+Licensed under the [Apache License, Version 2.0](LICENSE).
