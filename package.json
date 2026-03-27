@@ -93,6 +93,25 @@
   "overrides": {
     "dompurify": "^3.3.3",
     "immutable": "^5.1.5",
-    "@tootallnate/once": "^3.0.1"
+    "@tootallnate/once": "^3.0.1",
+    "brace-expansion": "5.0.5",
+    "cosmiconfig": {
+      "yaml": "1.10.3"
+    },
+    "micromatch": {
+      "picomatch": "2.3.2"
+    },
+    "anymatch": {
+      "picomatch": "2.3.2"
+    },
+    "fdir": {
+      "picomatch": "4.0.4"
+    },
+    "tinyglobby": {
+      "picomatch": "4.0.4"
+    },
+    "@parcel/watcher": {
+      "picomatch": "4.0.4"
+    }
   }
 }
