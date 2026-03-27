@@ -157,27 +157,6 @@ ${__field.labels.deviceName}.${__field.labels.tagName}
 
 Tokens are stored in Grafana's [secure JSON data](https://grafana.com/docs/grafana/latest/administration/provisioning/#datasources) and are never exposed to the browser after initial setup. To rotate, edit the data source, enter the new token, and click **Save & test**.
 
-## Plugin validation
-
-Validate the plugin archive with Grafana's official validator Docker image:
-
-```bash
-npm run validate:plugin
-```
-
-This runs `npm run build`, packages the fresh `dist/` output into a temporary zip, and runs `grafana/plugin-validator-cli` with a lightweight source snapshot for deeper checks. The first run can take a minute while Docker layers and analyzers initialize.
-
-You can also validate a published or custom archive directly:
-
-```bash
-npm run validate:plugin -- https://github.com/litmusautomation/edge-datasource/releases/download/v0.1.0/litmus-edge-datasource-0.1.0.zip
-```
-
-Optional environment variables:
-
-- `VALIDATOR_FLAGS` — extra validator flags such as `-strict`
-- `VALIDATOR_SOURCE_CODE_URI` — override the source code URI passed to the validator
-
 ## Contributing
 
 See [CONTRIBUTING.md](https://github.com/litmusautomation/edge-datasource/blob/main/CONTRIBUTING.md).
