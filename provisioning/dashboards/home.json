@@ -19,7 +19,6 @@
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
   "links": [],
-  "liveNow": false,
   "panels": [
     {
       "datasource": {
@@ -32,11 +31,13 @@
             "mode": "palette-classic"
           },
           "custom": {
+            "axisBorderShow": false,
             "axisCenteredZero": false,
-            "axisColorMode": "text",
+            "axisColorMode": "series",
             "axisLabel": "",
             "axisPlacement": "auto",
             "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 0,
             "gradientMode": "none",
@@ -45,6 +46,7 @@
               "tooltip": false,
               "viz": false
             },
+            "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 1,
             "pointSize": 5,
@@ -52,6 +54,7 @@
               "type": "linear"
             },
             "showPoints": "auto",
+            "showValues": false,
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -67,7 +70,7 @@
             "steps": [
               {
                 "color": "green",
-                "value": null
+                "value": 0
               },
               {
                 "color": "red",
@@ -79,8 +82,8 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 12,
-        "w": 24,
+        "h": 13,
+        "w": 20,
         "x": 0,
         "y": 0
       },
@@ -93,27 +96,181 @@
           "showLegend": true
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "single",
           "sort": "none"
         }
       },
+      "pluginVersion": "12.4.2",
       "targets": [
         {
           "datasource": {
             "type": "litmus-edge-datasource",
             "uid": "P1E81273D17965D71"
           },
-          "refId": "A",
-          "topic": "devicehub.alias.demo.bearing_temperature"
+          "refId": "B",
+          "topic": "devicehub.alias.pump_001.differential_head"
+        },
+        {
+          "datasource": {
+            "type": "litmus-edge-datasource",
+            "uid": "P1E81273D17965D71"
+          },
+          "refId": "C",
+          "topic": "devicehub.alias.pump_001.vibration_radial"
+        },
+        {
+          "datasource": {
+            "type": "litmus-edge-datasource",
+            "uid": "P1E81273D17965D71"
+          },
+          "refId": "D",
+          "topic": "devicehub.alias.pump_001.motor_current"
+        },
+        {
+          "datasource": {
+            "type": "litmus-edge-datasource",
+            "uid": "P1E81273D17965D71"
+          },
+          "refId": "E",
+          "topic": "devicehub.alias.pump_001.discharge_pressure"
         }
       ],
-      "title": "Panel Title",
+      "title": "Pump 001",
+      "transparent": true,
       "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "litmus-edge-datasource",
+        "uid": "P1E81273D17965D71"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 4,
+        "x": 20,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.4.2",
+      "targets": [
+        {
+          "refId": "A",
+          "topic": "devicehub.alias.pump_001.bearing_temperature"
+        }
+      ],
+      "title": "Pump 001 - Bearing Temperature",
+      "transparent": true,
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "litmus-edge-datasource",
+        "uid": "P1E81273D17965D71"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 4,
+        "x": 20,
+        "y": 6
+      },
+      "id": 3,
+      "options": {
+        "displayMode": "gradient",
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "maxVizHeight": 300,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "namePlacement": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true,
+        "sizing": "auto",
+        "valueMode": "color"
+      },
+      "pluginVersion": "12.4.2",
+      "targets": [
+        {
+          "refId": "A",
+          "topic": "devicehub.alias.pump_001.speed_feedback"
+        }
+      ],
+      "title": "Pump 001 - Speed Feedback",
+      "transparent": true,
+      "type": "bargauge"
     }
   ],
+  "preload": false,
   "refresh": "",
-  "schemaVersion": 38,
-  "style": "dark",
+  "schemaVersion": 42,
   "tags": [],
   "templating": {
     "list": []
@@ -123,7 +280,7 @@
     "to": "now"
   },
   "timepicker": {},
-  "timezone": "",
+  "timezone": "browser",
   "title": "Litmus Edge",
   "uid": "f923249c-a6bd-4a37-9006-a2177a54bef8",
   "version": 2,

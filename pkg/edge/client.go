@@ -229,6 +229,9 @@ type DHMessage struct {
 	Metadata    json.RawMessage `json:"metadata"`
 }
 
+const unixSecondsThreshold = int64(1_000_000_000)
+const unixMillisecondsThreshold = int64(1_000_000_000_000)
+
 // isDHMessage returns true if the parsed message has the required DeviceHub fields.
 func isDHMessage(dh DHMessage) bool {
 	return dh.TagName != "" && dh.Timestamp != 0 && dh.DeviceId != ""
@@ -261,8 +264,10 @@ func (c *client) getTimestampFromMessageData(data []byte) time.Time {
 	}
 	var v hasTime
 	err := json.Unmarshal(data, &v)
-	if err == nil && v.Timestamp != 0 {
-		return time.UnixMilli(v.Timestamp)
+	if err == nil {
+		if timestamp, ok := parseTimestamp(v.Timestamp); ok {
+			return timestamp
+		}
 	}
 
 	return time.Now()
@@ -270,7 +275,10 @@ func (c *client) getTimestampFromMessageData(data []byte) time.Time {
 
 func (c *client) createMessageFromDHMessage(msg *nats.Msg, dhMessage DHMessage) Message {
 	fieldName := dhMessage.TagName
-	timestamp := time.UnixMilli(dhMessage.Timestamp)
+	timestamp, ok := parseTimestamp(dhMessage.Timestamp)
+	if !ok {
+		timestamp = time.Now()
+	}
 	labels := make(data.Labels)
 
 	if msg.Subject != "" {
@@ -308,6 +316,26 @@ func (c *client) createMessageFromDHMessage(msg *nats.Msg, dhMessage DHMessage) 
 		Value:     valueBytes,
 		Metadata:  dhMessage.Metadata,
 	}
+}
+
+func parseTimestamp(value int64) (time.Time, bool) {
+	if value == 0 {
+		return time.Time{}, false
+	}
+
+	abs := value
+	if abs < 0 {
+		abs = -abs
+	}
+
+	if abs >= unixMillisecondsThreshold {
+		return time.UnixMilli(value), true
+	}
+	if abs >= unixSecondsThreshold {
+		return time.Unix(value, 0), true
+	}
+
+	return time.Time{}, false
 }
 
 // stripPort removes the port from a host:port string.

@@ -11,9 +11,9 @@
   "releases": [
     {
       "application_id": "c79d7be8-d8ee-4390-81ff-95f2cd2576b2",
-      "name": "latest",
-      "readme": "Litmus Grafana is a preconfigured Grafana image for Litmus Edge with bundled visualization plugins and the Litmus Edge datasource preinstalled. Set **Edge Docker Gateway IP** if your instance does not use the default `10.30.50.1` gateway, and optionally provide an **API Token** for topic discovery in the query editor. For full setup, usage, and troubleshooting details, see the [Litmus Grafana README](https://github.com/litmusautomation/edge-datasource/blob/main/litmus-grafana/README.md).",
-      "description": "Ready-to-use Grafana for Litmus Edge with built-in plugins and the Litmus Edge datasource, configured for inside-LE deployments.",
+      "name": "latest-test",
+      "readme": "Litmus Grafana is a preconfigured Grafana image for Litmus Edge with bundled visualization plugins and the Litmus Edge Datasource preinstalled.\n### Litmus Edge Datasource\nSet **Edge Docker Gateway IP** if your instance does not use the default `10.30.50.1` gateway, and optionally provide an **API Token** for topic discovery in the query editor.\nFor full setup, usage, and troubleshooting details, see the [Litmus Grafana README](https://github.com/litmusautomation/edge-datasource/blob/main/litmus-grafana/README.md).",
+      "description": "Litmus Grafana is a ready-to-use Grafana image with built-in plugins and the Litmus Edge Datasource for real-time edge stream visualization.",
       "components": [
         {
           "id": "788",
@@ -80,6 +80,5 @@
       "type": "simple",
       "submitted_at": ""
     }
-  ],
-  "repositories": {}
+  ]
 }

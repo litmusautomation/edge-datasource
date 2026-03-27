@@ -359,6 +359,18 @@ func TestGetTimestampFromMessageData(t *testing.T) {
 		assert.Equal(t, time.UnixMilli(1700000000000), ts)
 	})
 
+	t.Run("unix seconds timestamp", func(t *testing.T) {
+		ts := c.getTimestampFromMessageData([]byte(`{"timestamp": 1700000000}`))
+		assert.Equal(t, time.Unix(1700000000, 0), ts)
+	})
+
+	t.Run("small timestamp falls back to now", func(t *testing.T) {
+		before := time.Now()
+		ts := c.getTimestampFromMessageData([]byte(`{"timestamp": 2574000}`))
+		after := time.Now()
+		assert.True(t, !ts.Before(before) && !ts.After(after))
+	})
+
 	t.Run("zero timestamp falls back to now", func(t *testing.T) {
 		before := time.Now()
 		ts := c.getTimestampFromMessageData([]byte(`{"timestamp": 0}`))
@@ -379,6 +391,30 @@ func TestGetTimestampFromMessageData(t *testing.T) {
 		after := time.Now()
 		assert.True(t, !ts.Before(before) && !ts.After(after))
 	})
+}
+
+func TestParseTimestamp(t *testing.T) {
+	tests := []struct {
+		name  string
+		input int64
+		want  time.Time
+		ok    bool
+	}{
+		{name: "milliseconds", input: 1700000000000, want: time.UnixMilli(1700000000000), ok: true},
+		{name: "seconds", input: 1700000000, want: time.Unix(1700000000, 0), ok: true},
+		{name: "small value rejected", input: 2574000, ok: false},
+		{name: "zero rejected", input: 0, ok: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, ok := parseTimestamp(tt.input)
+			assert.Equal(t, tt.ok, ok)
+			if tt.ok {
+				assert.Equal(t, tt.want, got)
+			}
+		})
+	}
 }
 
 func TestStringBool_UnmarshalJSON(t *testing.T) {

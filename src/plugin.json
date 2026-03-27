@@ -18,16 +18,22 @@
     },
     "links": [
       {
-        "name": "Watch Demo",
-        "url": "https://github.com/user-attachments/assets/934e18e8-e89d-42eb-8455-75010db3d641"
+        "name": "Documentation",
+        "url": "https://github.com/litmusautomation/edge-datasource/blob/main/README.md"
+      },
+      {
+        "name": "GitHub",
+        "url": "https://github.com/litmusautomation/edge-datasource"
       },
       {
         "name": "Litmus",
         "url": "https://litmus.io"
-      },
+      }
+    ],
+    "screenshots": [
       {
-        "name": "Litmus Edge API Account",
-        "url": "https://docs.litmus.io/litmusedge/product-features/system/access-control/tokens/create-api-account"
+        "name": "Litmus Edge query editor and live panel",
+        "url": "img/query-editor-screenshot.png"
       }
     ],
     "version": "%VERSION%",

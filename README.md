@@ -2,6 +2,8 @@
 
 Stream live operational data from [Litmus Edge](https://litmus.io) directly into Grafana dashboards. The plugin subscribes to NATS topics on the edge and pushes frames into panels in real time — no polling, no historical database required.
 
+![Litmus Edge query editor and live panel](https://github.com/litmusautomation/edge-datasource/blob/main/src/img/query-editor-screenshot.png?raw=true)
+
 ## Installation
 
 Choose one of these deployment paths:
@@ -123,7 +125,7 @@ The plugin subscribes and streams frames once per second. Each query row maps to
 | Null                       | Nullable                                       |
 | JSON array / nested object | JSON (use the "Extract Fields" transformation) |
 
-Every frame includes a `Time` field derived from the payload's `timestamp` (Unix ms), falling back to arrival time when absent. DeviceHub messages also carry metadata labels: `tagName`, `deviceName`, `deviceId`, `datatype`, `description`, and `registerId`.
+Every frame includes a `Time` field derived from the payload's `timestamp`. The plugin accepts Unix timestamps in milliseconds or seconds, and falls back to arrival time when the timestamp is absent or not epoch-based. DeviceHub messages also carry metadata labels: `tagName`, `deviceName`, `deviceId`, `datatype`, `description`, and `registerId`.
 
 ### Customizing legends
 
