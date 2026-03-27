@@ -1,47 +1,65 @@
 import { test, expect } from '@grafana/plugin-e2e';
 
+const remoteEdgeSwitchName = 'Connect to remote Litmus Edge';
+const litmusEdgeAddressPlaceholder = '172.17.0.1 or 172.17.0.1:8443';
+const accessAccountTokenPlaceholder = 'Access Account token';
+
+async function setRemoteConnection(page: any, enabled: boolean) {
+  const remoteConnectionSwitch = page.getByRole('switch', { name: remoteEdgeSwitchName });
+
+  if (enabled) {
+    await remoteConnectionSwitch.check({ force: true });
+  } else {
+    await remoteConnectionSwitch.uncheck({ force: true });
+  }
+}
+
 test.describe('Config editor — connection mode', () => {
   test('defaults to inside-LE mode with no required fields', async ({ createDataSourceConfigPage, page }) => {
     await createDataSourceConfigPage({ type: 'litmus-edge-datasource' });
 
     await expect(page.getByText('Type: Litmus Edge', { exact: true })).toBeVisible();
-    await expect(page.getByLabel('External Litmus Edge')).toBeVisible();
+    await expect(page.getByRole('switch', { name: remoteEdgeSwitchName })).toBeVisible();
+    await expect(page.getByText('Remote Connection', { exact: true })).toBeVisible();
 
-    // Hostname and token fields are hidden in inside-LE mode
-    await expect(page.getByPlaceholder('172.17.0.1')).not.toBeVisible();
-    await expect(page.getByPlaceholder('Access Account token')).not.toBeVisible();
+    // Remote-only fields are hidden by default
+    await expect(page.getByPlaceholder(litmusEdgeAddressPlaceholder)).not.toBeVisible();
+    await expect(page.getByPlaceholder(accessAccountTokenPlaceholder)).not.toBeVisible();
+
+    // Topic discovery is always available
+    await expect(page.getByText('Topic Discovery', { exact: true })).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'API token' })).toBeVisible();
   });
 
-  test('shows hostname and token when External is toggled on', async ({ createDataSourceConfigPage, page }) => {
+  test('shows remote connection fields when enabled', async ({ createDataSourceConfigPage, page }) => {
     await createDataSourceConfigPage({ type: 'litmus-edge-datasource' });
 
-    await page.getByLabel('External Litmus Edge').click();
+    await setRemoteConnection(page, true);
 
-    await expect(page.getByText('Hostname *', { exact: true })).toBeVisible();
+    await expect(page.getByText('Litmus Edge Address *', { exact: true })).toBeVisible();
+    await expect(page.getByText('NATS Proxy Port', { exact: true })).toBeVisible();
     await expect(page.getByText('Access Account Token *', { exact: true })).toBeVisible();
-    await expect(page.getByPlaceholder('172.17.0.1')).toBeVisible();
-    await expect(page.getByPlaceholder('Access Account token')).toBeVisible();
+    await expect(page.getByPlaceholder(litmusEdgeAddressPlaceholder)).toBeVisible();
+    await expect(page.getByPlaceholder('4222')).toBeVisible();
+    await expect(page.getByPlaceholder(accessAccountTokenPlaceholder)).toBeVisible();
   });
 
-  test('hides fields and clears hostname when External is toggled off', async ({
-    createDataSourceConfigPage,
-    page,
-  }) => {
+  test('hides remote fields and clears address when disabled', async ({ createDataSourceConfigPage, page }) => {
     await createDataSourceConfigPage({ type: 'litmus-edge-datasource' });
 
-    // Toggle ON, fill hostname
-    await page.getByLabel('External Litmus Edge').click();
-    await page.getByPlaceholder('172.17.0.1').fill('10.0.0.1');
-    await expect(page.getByPlaceholder('172.17.0.1')).toHaveValue('10.0.0.1');
+    // Toggle ON, fill address
+    await setRemoteConnection(page, true);
+    await page.getByPlaceholder(litmusEdgeAddressPlaceholder).fill('10.0.0.1');
+    await expect(page.getByPlaceholder(litmusEdgeAddressPlaceholder)).toHaveValue('10.0.0.1');
 
-    // Toggle OFF — fields hidden, hostname cleared
-    await page.getByLabel('External Litmus Edge').click();
-    await expect(page.getByPlaceholder('172.17.0.1')).not.toBeVisible();
-    await expect(page.getByPlaceholder('Access Account token')).not.toBeVisible();
+    // Toggle OFF — fields hidden, address cleared
+    await setRemoteConnection(page, false);
+    await expect(page.getByPlaceholder(litmusEdgeAddressPlaceholder)).not.toBeVisible();
+    await expect(page.getByPlaceholder(accessAccountTokenPlaceholder)).not.toBeVisible();
 
-    // Toggle back ON — hostname should be empty (was cleared)
-    await page.getByLabel('External Litmus Edge').click();
-    await expect(page.getByPlaceholder('172.17.0.1')).toHaveValue('');
+    // Toggle back ON — address should be empty (was cleared)
+    await setRemoteConnection(page, true);
+    await expect(page.getByPlaceholder(litmusEdgeAddressPlaceholder)).toHaveValue('');
   });
 
   test('inside-LE save & test fails in dev environment', async ({ createDataSourceConfigPage, page }) => {
@@ -53,10 +71,10 @@ test.describe('Config editor — connection mode', () => {
     await expect(configPage).toHaveAlert('error');
   });
 
-  test('save & test fails with empty external fields', async ({ createDataSourceConfigPage, page }) => {
+  test('save & test fails with empty remote connection fields', async ({ createDataSourceConfigPage, page }) => {
     const configPage = await createDataSourceConfigPage({ type: 'litmus-edge-datasource' });
 
-    await page.getByLabel('External Litmus Edge').click();
+    await setRemoteConnection(page, true);
     await configPage.saveAndTest();
 
     await expect(configPage).toHaveAlert('error');
@@ -65,9 +83,9 @@ test.describe('Config editor — connection mode', () => {
   test('save & test fails with invalid credentials', async ({ createDataSourceConfigPage, page }) => {
     const configPage = await createDataSourceConfigPage({ type: 'litmus-edge-datasource' });
 
-    await page.getByLabel('External Litmus Edge').click();
-    await page.getByPlaceholder('172.17.0.1').fill('192.168.0.999');
-    await page.getByPlaceholder('Access Account token').fill('invalid-token');
+    await setRemoteConnection(page, true);
+    await page.getByPlaceholder(litmusEdgeAddressPlaceholder).fill('192.168.0.999');
+    await page.getByPlaceholder(accessAccountTokenPlaceholder).fill('invalid-token');
 
     await configPage.saveAndTest();
 
@@ -75,53 +93,52 @@ test.describe('Config editor — connection mode', () => {
   });
 });
 
-test.describe('Config editor — topic autocomplete', () => {
-  test('autocomplete toggle is visible in inside-LE mode', async ({ createDataSourceConfigPage, page }) => {
+test.describe('Config editor — topic discovery', () => {
+  test('autocomplete token field is visible in inside-LE mode', async ({ createDataSourceConfigPage, page }) => {
     await createDataSourceConfigPage({ type: 'litmus-edge-datasource' });
 
-    await expect(page.getByLabel('Enable topic autocomplete')).toBeVisible();
-    // API token hidden by default
-    await expect(page.getByPlaceholder('API token')).not.toBeVisible();
+    await expect(page.getByText('Topic Discovery', { exact: true })).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'API token' })).toBeVisible();
   });
 
-  test('autocomplete toggle shows API token field', async ({ createDataSourceConfigPage, page }) => {
+  test('autocomplete token field stays visible in remote mode', async ({ createDataSourceConfigPage, page }) => {
     await createDataSourceConfigPage({ type: 'litmus-edge-datasource' });
 
-    await page.getByLabel('Enable topic autocomplete').click();
+    await setRemoteConnection(page, true);
 
-    await expect(page.getByText('API Token', { exact: true })).toBeVisible();
-    await expect(page.getByPlaceholder('API token')).toBeVisible();
+    await expect(page.getByPlaceholder(litmusEdgeAddressPlaceholder)).toBeVisible();
+    await expect(page.getByPlaceholder(accessAccountTokenPlaceholder)).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'API token' })).toBeVisible();
   });
 
-  test('autocomplete toggle hides API token field when turned off', async ({
+  test('autocomplete token field remains available while switching modes', async ({
     createDataSourceConfigPage,
     page,
   }) => {
     await createDataSourceConfigPage({ type: 'litmus-edge-datasource' });
 
-    // Toggle ON
-    await page.getByLabel('Enable topic autocomplete').click();
-    await expect(page.getByPlaceholder('API token')).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'API token' })).toBeVisible();
 
-    // Toggle OFF
-    await page.getByLabel('Enable topic autocomplete').click();
-    await expect(page.getByPlaceholder('API token')).not.toBeVisible();
+    await setRemoteConnection(page, true);
+    await expect(page.getByPlaceholder(litmusEdgeAddressPlaceholder)).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'API token' })).toBeVisible();
+
+    await setRemoteConnection(page, false);
+    await expect(page.getByRole('textbox', { name: 'API token' })).toBeVisible();
+    await expect(page.getByPlaceholder(litmusEdgeAddressPlaceholder)).not.toBeVisible();
   });
 
-  test('autocomplete toggle works in external mode', async ({ createDataSourceConfigPage, page }) => {
+  test('remote mode shows remote fields together with autocomplete token', async ({
+    createDataSourceConfigPage,
+    page,
+  }) => {
     await createDataSourceConfigPage({ type: 'litmus-edge-datasource' });
 
-    // Switch to external mode
-    await page.getByLabel('External Litmus Edge').click();
-    await expect(page.getByPlaceholder('172.17.0.1')).toBeVisible();
+    await setRemoteConnection(page, true);
 
-    // Autocomplete toggle still works
-    await page.getByLabel('Enable topic autocomplete').click();
-    await expect(page.getByPlaceholder('API token')).toBeVisible();
-
-    // Both external fields and autocomplete field visible together
-    await expect(page.getByPlaceholder('172.17.0.1')).toBeVisible();
-    await expect(page.getByPlaceholder('Access Account token')).toBeVisible();
-    await expect(page.getByPlaceholder('API token')).toBeVisible();
+    await expect(page.getByPlaceholder(litmusEdgeAddressPlaceholder)).toBeVisible();
+    await expect(page.getByPlaceholder('4222')).toBeVisible();
+    await expect(page.getByPlaceholder(accessAccountTokenPlaceholder)).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'API token' })).toBeVisible();
   });
 });
