@@ -60,8 +60,8 @@ func TestCheckHealth_DisconnectedInsideLE(t *testing.T) {
 	res, err := ds.CheckHealth(context.Background(), &backend.CheckHealthRequest{})
 	require.NoError(t, err)
 	assert.Equal(t, backend.HealthStatusError, res.Status)
-	assert.Contains(t, res.Message, "Docker bridge network")
-	assert.Contains(t, res.Message, "switch to External mode")
+	assert.Contains(t, res.Message, "Edge Docker Gateway IP")
+	assert.Contains(t, res.Message, "turn on Remote Connection")
 }
 
 func TestCheckHealth_DisconnectedExternal(t *testing.T) {
@@ -212,27 +212,31 @@ func TestGetSettings_ExternalEdgeStringBool(t *testing.T) {
 	s.JSONData = []byte(`{"externalEdge": "false"}`)
 	s.DecryptedSecureJSONData = map[string]string{}
 	opts, _, err = getSettings(s)
-	if err != nil {
-		// Gateway detection may fail in test environments — that's fine
-		assert.Contains(t, err.Error(), "could not auto-detect")
-	} else {
-		assert.False(t, bool(opts.ExternalEdge))
-	}
+	require.NoError(t, err)
+	assert.False(t, bool(opts.ExternalEdge))
+	assert.Equal(t, edge.DefaultDockerGatewayIP, opts.Hostname)
 }
 
 func TestGetSettings_InsideLE(t *testing.T) {
-	// Inside-LE mode calls ResolveGatewayHost() which reads /proc/net/route.
-	// In CI/test environments this may fail — that's expected; we just verify
-	// that hostname and token are NOT required for inside-LE mode.
 	s := backend.DataSourceInstanceSettings{
 		JSONData:                []byte(`{"externalEdge": false}`),
 		DecryptedSecureJSONData: map[string]string{},
 	}
 	opts, _, err := getSettings(s)
-	if err != nil {
-		assert.Contains(t, err.Error(), "could not auto-detect the Litmus Edge address")
-	} else {
-		assert.NotEmpty(t, opts.Hostname, "hostname should be resolved from gateway")
-		assert.Empty(t, opts.Token, "token should be empty in inside-LE mode")
+	require.NoError(t, err)
+	assert.Equal(t, edge.DefaultDockerGatewayIP, opts.GatewayIP)
+	assert.Equal(t, edge.DefaultDockerGatewayIP, opts.Hostname)
+	assert.Empty(t, opts.Token, "token should be empty in inside-LE mode")
+}
+
+func TestGetSettings_InsideLE_CustomGateway(t *testing.T) {
+	s := backend.DataSourceInstanceSettings{
+		JSONData:                []byte(`{"externalEdge": false, "gatewayIp": "10.88.0.1"}`),
+		DecryptedSecureJSONData: map[string]string{},
 	}
+	opts, _, err := getSettings(s)
+	require.NoError(t, err)
+	assert.Equal(t, "10.88.0.1", opts.GatewayIP)
+	assert.Equal(t, "10.88.0.1", opts.Hostname)
+	assert.Empty(t, opts.Token)
 }

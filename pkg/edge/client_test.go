@@ -413,18 +413,6 @@ func TestStringBool_UnmarshalJSON(t *testing.T) {
 	}
 }
 
-func TestResolveGatewayHost(t *testing.T) {
-	// ResolveGatewayHost reads /proc/net/route which is Linux-only and
-	// may not have a default route in CI. We just verify it doesn't panic
-	// and returns either a valid IP or a clear error.
-	ip, err := ResolveGatewayHost()
-	if err != nil {
-		assert.Contains(t, err.Error(), "/proc/net/route")
-	} else {
-		assert.Regexp(t, `^\d+\.\d+\.\d+\.\d+$`, ip, "should be a dotted IPv4 address")
-	}
-}
-
 func TestStripPort(t *testing.T) {
 	tests := []struct {
 		input string

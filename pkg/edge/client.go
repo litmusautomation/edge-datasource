@@ -1,15 +1,12 @@
 package edge
 
 import (
-	"bufio"
 	"context"
 	"crypto/tls"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net"
 	"net/url"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -27,6 +24,7 @@ import (
 var topicTokenPattern = regexp.MustCompile(`^[^\s.]+$`)
 
 const DefaultNATSProxyPort = "4222"
+const DefaultDockerGatewayIP = "10.30.50.1"
 
 type Client interface {
 	Subscribe(string) error
@@ -38,6 +36,7 @@ type Client interface {
 
 type ConnectionOptions struct {
 	Hostname      string     `json:"hostname"`
+	GatewayIP     string     `json:"gatewayIp"`
 	NATSProxyPort string     `json:"natsProxyPort"`
 	Token         string     `json:"token"`
 	ExternalEdge  StringBool `json:"externalEdge"`
@@ -309,41 +308,6 @@ func (c *client) createMessageFromDHMessage(msg *nats.Msg, dhMessage DHMessage) 
 		Value:     valueBytes,
 		Metadata:  dhMessage.Metadata,
 	}
-}
-
-// ResolveGatewayHost reads /proc/net/route to find the default gateway IP.
-// On the Docker bridge network, this is the host machine running Litmus Edge.
-func ResolveGatewayHost() (string, error) {
-	f, err := os.Open("/proc/net/route")
-	if err != nil {
-		return "", fmt.Errorf("cannot read /proc/net/route: %w", err)
-	}
-	defer f.Close()
-
-	scanner := bufio.NewScanner(f)
-	scanner.Scan() // skip header line
-	for scanner.Scan() {
-		fields := strings.Fields(scanner.Text())
-		if len(fields) < 3 {
-			continue
-		}
-		// Default route has destination "00000000"
-		if fields[1] != "00000000" {
-			continue
-		}
-		gatewayHex := fields[2]
-		b, err := hex.DecodeString(gatewayHex)
-		if err != nil || len(b) != 4 {
-			return "", fmt.Errorf("invalid gateway hex %q", gatewayHex)
-		}
-		// /proc/net/route stores the gateway as a little-endian hex uint32
-		ip := fmt.Sprintf("%d.%d.%d.%d", b[3], b[2], b[1], b[0])
-		return ip, nil
-	}
-	if err := scanner.Err(); err != nil {
-		return "", fmt.Errorf("error reading /proc/net/route: %w", err)
-	}
-	return "", fmt.Errorf("no default route found in /proc/net/route")
 }
 
 // stripPort removes the port from a host:port string.

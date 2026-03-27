@@ -74,12 +74,12 @@ func getSettings(s backend.DataSourceInstanceSettings) (*edge.ConnectionOptions,
 			return nil, "", fmt.Errorf("Access Account token is required when connecting to an external Litmus Edge")
 		}
 	} else {
-		gateway, err := edge.ResolveGatewayHost()
-		if err != nil {
-			log.DefaultLogger.Error("Gateway detection failed", "error", err)
-			return nil, "", fmt.Errorf("could not auto-detect the Litmus Edge address — enable External Litmus Edge and provide the address manually")
+		gatewayIP := strings.TrimSpace(opts.GatewayIP)
+		if gatewayIP == "" {
+			gatewayIP = edge.DefaultDockerGatewayIP
 		}
-		opts.Hostname = gateway
+		opts.GatewayIP = gatewayIP
+		opts.Hostname = gatewayIP
 		opts.Token = "" // no auth needed from docker0 whitelist
 	}
 

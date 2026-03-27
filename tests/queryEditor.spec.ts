@@ -74,7 +74,7 @@ test.describe('Query editor', () => {
 
     const combo = page.locator('[role="combobox"]').first();
     if ((await combo.count()) === 0) {
-      test.skip(true, 'Autocomplete combobox is not available (API token likely not configured)');
+      test.skip(true, 'Autocomplete combobox is not available (API Token likely not configured)');
     }
 
     await combo.click();

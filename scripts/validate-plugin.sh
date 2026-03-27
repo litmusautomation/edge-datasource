@@ -54,7 +54,7 @@ if [[ $# -eq 0 ]]; then
   printf 'Building plugin with npm run build\n'
   (
     cd "$ROOT_DIR"
-    npm run build -- --stats errors-only
+	    npm run build
   )
 
   tmp_dir=$(mktemp -d)

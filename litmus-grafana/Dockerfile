@@ -14,10 +14,11 @@ COPY --chown=grafana:root litmus-grafana/provisioning/ /etc/grafana/provisioning
 # Signed plugin (private signature, localhost rootUrls)
 COPY --chown=grafana:root dist/ /var/lib/grafana/plugins/litmus-edge-datasource/
 
-# Datasource defaults — inside-LE mode, no hostname/token needed.
+# Datasource defaults — inside-LE mode uses the Docker gateway IP.
 # Override at runtime with -e EDGE_EXTERNAL=true etc.
 ENV GF_SERVER_ROOT_URL=http://localhost:3000 \
     EDGE_EXTERNAL=false \
+    EDGE_DOCKER_GATEWAY_IP=10.30.50.1 \
     EDGE_HOSTNAME= \
     EDGE_NATS_PROXY_PORT= \
     EDGE_ACCESS_ACCOUNT_TOKEN= \

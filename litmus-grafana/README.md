@@ -28,10 +28,11 @@ The Litmus Edge datasource is already installed and provisioned as the default.
 
 ### Inside Litmus Edge (default)
 
-When running as a container inside Litmus Edge, the plugin discovers the host automatically via the Docker bridge network and connects to NATS without credentials. `EDGE_TOKEN` is optional, but recommended for topic discovery:
+When running as a container inside Litmus Edge, the plugin reaches Litmus Edge through `EDGE_DOCKER_GATEWAY_IP` and connects to NATS without credentials. The image does not auto-detect this address, so update it if your instance does not use the default `10.30.50.1` gateway. `EDGE_TOKEN` is optional, but recommended for topic discovery:
 
 ```bash
 docker run -p 3000:3000 \
+  -e EDGE_DOCKER_GATEWAY_IP=10.30.50.1 \
   -e EDGE_TOKEN=<your-edge-token> \
   us-docker.pkg.dev/litmus-customer-facing/litmus-solutions/litmus-grafana
 ```
@@ -54,13 +55,14 @@ The Litmus Edge datasource is automatically provisioned as the default. No manua
 
 ## Environment variables
 
-| Variable                    | Required      | Description                                                                 |
-| --------------------------- | ------------- | --------------------------------------------------------------------------- |
-| `EDGE_EXTERNAL`             | No            | Set to `true` to connect to a remote Litmus Edge instance. Default: `false` |
-| `EDGE_HOSTNAME`             | External only | Litmus Edge address. Use `host` or `host:port`                              |
-| `EDGE_NATS_PROXY_PORT`      | No            | NATS Proxy port used for live data streaming. Default: `4222`               |
-| `EDGE_ACCESS_ACCOUNT_TOKEN` | External only | Access Account token with NATS Proxy read access                            |
-| `EDGE_TOKEN`                | No            | Optional token used for topic discovery via the DeviceHub API               |
+| Variable                    | Required      | Description                                                                                                                |
+| --------------------------- | ------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `EDGE_EXTERNAL`             | No            | Set to `true` to connect to a remote Litmus Edge instance. Default: `false`                                                |
+| `EDGE_DOCKER_GATEWAY_IP`    | No            | Docker gateway IP used inside Litmus Edge. Default: `10.30.50.1`. Update it when your instance uses a different gateway IP |
+| `EDGE_HOSTNAME`             | External only | Litmus Edge address. Use `host` or `host:port`                                                                             |
+| `EDGE_NATS_PROXY_PORT`      | No            | NATS Proxy port used for live data streaming. Default: `4222`                                                              |
+| `EDGE_ACCESS_ACCOUNT_TOKEN` | External only | Access Account token with NATS Proxy read access                                                                           |
+| `EDGE_TOKEN`                | No            | Optional token used for topic discovery via the DeviceHub API                                                              |
 
 ## Plugin signature
 
@@ -76,7 +78,7 @@ If Grafana runs behind a reverse proxy with a different URL, either set `GF_SERV
 
 ## Using the plugin without this image
 
-If you already have a Grafana deployment, you can install the plugin separately instead of using `litmus-grafana`. See `README.md` for Grafana CLI installation and datasource provisioning examples.
+If you already have a Grafana deployment, you can install the plugin separately instead of using `litmus-grafana`. See [README.md](https://github.com/litmusautomation/edge-datasource/blob/main/README.md) for Grafana CLI installation and datasource provisioning examples.
 
 ## Versioning
 

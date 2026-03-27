@@ -20,9 +20,9 @@ Please check:
 const natsConnectErrorInternal = `Could not connect to Litmus Edge.
 
 Please check:
-• This container is running on the Litmus Edge Docker bridge network
+• Edge Docker Gateway IP is correct for this Litmus Edge instance
 • NATS Proxy is enabled and reachable on the configured NATS Proxy port
-If the problem persists, switch to External mode and provide the Litmus Edge address manually.`
+If the problem persists, turn on Remote Connection and provide the Litmus Edge address manually.`
 
 // CheckHealth handles health checks sent from Grafana to the plugin.
 // The main use case for these health checks is the test button on the

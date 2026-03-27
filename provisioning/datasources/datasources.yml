@@ -14,6 +14,7 @@ datasources:
     editable: true
     jsonData:
       externalEdge: ${EDGE_EXTERNAL}
+      gatewayIp: ${EDGE_DOCKER_GATEWAY_IP}
       hostname: ${EDGE_HOSTNAME}
       natsProxyPort: ${EDGE_NATS_PROXY_PORT}
     secureJsonData:

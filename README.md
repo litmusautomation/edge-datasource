@@ -15,7 +15,7 @@ docker run -p 3000:3000 \
   us-docker.pkg.dev/litmus-customer-facing/litmus-solutions/litmus-grafana:latest
 ```
 
-The image already includes the Litmus Edge data source plugin and provisions it automatically. See `litmus-grafana/README.md` for environment variables and external-connection setup.
+The image already includes the Litmus Edge data source plugin and provisions it automatically. See [litmus-grafana/README.md](https://github.com/litmusautomation/edge-datasource/blob/main/litmus-grafana/README.md) for environment variables and external-connection setup.
 
 ### Option 2: Install the plugin in your existing Grafana instance
 
@@ -33,7 +33,23 @@ Replace `<VERSION>` with a released plugin version such as `0.1.0`.
 
 After installation, restart Grafana and add or provision a data source of type `litmus-edge-datasource`.
 
-Minimal provisioning example:
+Provisioning example for inside-LE mode:
+
+```yaml
+apiVersion: 1
+
+datasources:
+  - name: Litmus Edge
+    type: litmus-edge-datasource
+    access: proxy
+    jsonData:
+      externalEdge: false
+      gatewayIp: ${EDGE_DOCKER_GATEWAY_IP}
+    secureJsonData:
+      apiToken: ${EDGE_TOKEN}
+```
+
+Provisioning example for external mode:
 
 ```yaml
 apiVersion: 1
@@ -59,11 +75,16 @@ Note: the plugin is signed for localhost root URLs. If your Grafana instance use
 
 ### Running inside Litmus Edge
 
-When deployed as a container on Litmus Edge, the plugin works out of the box — it discovers the host automatically via the Docker bridge network and connects to NATS without credentials.
+Leave **Remote Connection** off. [Add the data source](https://grafana.com/docs/grafana/latest/datasources/add-a-data-source/), select **Litmus Edge**, confirm **Edge Docker Gateway IP** (default `10.30.50.1`), and click **Save & test**.
 
-[Add the data source](https://grafana.com/docs/grafana/latest/datasources/add-a-data-source/), select **Litmus Edge**, and click **Save & test**. That's it.
+The plugin does not auto-detect this address. Update it if your Litmus Edge instance uses a different Docker gateway IP.
 
-> Optional but recommended: add an **Autocomplete Token** to enable topic discovery in the query editor.
+> Optional but recommended: add an **API Token** to enable topic discovery in the query editor.
+
+| Field                      | Description                                                                                                                                    |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Edge Docker Gateway IP** | IP used to reach Litmus Edge from the Grafana container. Default: `10.30.50.1`. Update it if this instance uses a different Docker gateway IP. |
+| **API Token**              | Optional, but recommended for topic discovery in the query editor.                                                                             |
 
 ### Connecting to an external Litmus Edge
 
@@ -74,7 +95,7 @@ In the data source settings, turn on **Remote Connection** and provide:
 | **Litmus Edge Address**  | Hostname or IP address of your Litmus Edge instance. Add `:port` only when Litmus Edge uses a non-default port.                 |
 | **NATS Proxy Port**      | Port used for live data streaming. Default: `4222`.                                                                             |
 | **Access Account Token** | Token with [NATS Proxy](https://docs.litmus.io/litmusedge/product-features/system/access-control/tokens#nats-proxy) read access |
-| **Autocomplete Token**   | Optional, but recommended for topic discovery in the query editor.                                                              |
+| **API Token**            | Optional, but recommended for topic discovery in the query editor.                                                              |
 
 The datasource uses the Litmus Edge address for connectivity and the NATS Proxy port for live streaming.
 
@@ -124,7 +145,7 @@ ${__field.labels.deviceName}.${__field.labels.tagName}
 
 | Problem                           | What to check                                                                                                                           |
 | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| **Save & test fails** (inside LE) | Can the container reach Litmus Edge on the configured NATS Proxy port? Try switching to External mode.                                  |
+| **Save & test fails** (inside LE) | Is **Edge Docker Gateway IP** correct for this Litmus Edge instance? Can the container reach Litmus Edge on port `4222`?                |
 | **Save & test fails** (external)  | Is Litmus Edge reachable on the configured NATS Proxy port? Is the NATS Proxy enabled? Is the Access Account Token valid?               |
 | **No data**                       | The topic must be an exact NATS subject — no wildcards. Verify the device is publishing and check Grafana logs for `"Topic not found"`. |
 | **Stale data after reconnect**    | NATS may buffer messages while disconnected. Refresh the dashboard to clear stale frames.                                               |

@@ -15,6 +15,7 @@ const ACCESS_ACCOUNT_DOCS =
   'https://docs.litmus.io/litmusedge/product-features/system/access-control/tokens/create-api-account';
 const API_TOKEN_DOCS =
   'https://docs.litmus.io/litmusedge/product-features/system/access-control/tokens/create-api-token';
+const DEFAULT_EDGE_DOCKER_GATEWAY_IP = '10.30.50.1';
 
 const WIDTH = 40;
 /** SecretInput is input (~width×8px) + Reset; use a smaller width on narrow viewports. */
@@ -104,6 +105,26 @@ export function ConfigEditor(props: Props) {
         >
           Connect to a remote Litmus Edge instance.
         </p>
+
+        {!externalEdge && (
+          <Field
+            label="Edge Docker Gateway IP"
+            description={
+              <>
+                Used when Grafana runs inside Litmus Edge. Update it if this instance uses a different gateway IP.
+                Verify it with Save & test.
+              </>
+            }
+          >
+            <Input
+              width={WIDTH}
+              name="gatewayIp"
+              placeholder={DEFAULT_EDGE_DOCKER_GATEWAY_IP}
+              value={jsonData.gatewayIp || DEFAULT_EDGE_DOCKER_GATEWAY_IP}
+              onChange={onUpdateDatasourceJsonDataOption(props, 'gatewayIp')}
+            />
+          </Field>
+        )}
 
         {externalEdge && (
           <>
@@ -197,7 +218,7 @@ export function ConfigEditor(props: Props) {
         </p>
 
         <Field
-          label=""
+          label="API Token"
           description={
             <>
               Optional, but recommended for topic discovery.{' '}
