@@ -34,7 +34,7 @@ IMAGE_NAME="litmus-grafana"
 IMAGE_TAG="${IMAGE_TAG:-$(jq -r .version package.json)-$(date +%Y%m%d%H%M%S)}"
 
 echo "==> Building frontend..."
-npm run build -- --stats errors-only
+npm run build:frontend -- --stats errors-only
 
 echo "==> Building backend..."
 mage build:linux

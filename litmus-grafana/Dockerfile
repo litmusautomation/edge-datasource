@@ -17,9 +17,10 @@ COPY --chown=grafana:root dist/ /var/lib/grafana/plugins/litmus-edge-datasource/
 # Datasource defaults — inside-LE mode uses the Docker gateway IP.
 # Override at runtime with -e EDGE_EXTERNAL=true etc.
 ENV GF_SERVER_ROOT_URL=http://localhost:3000 \
+    GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=litmus-edge-datasource \
     EDGE_EXTERNAL=false \
     EDGE_DOCKER_GATEWAY_IP=10.30.50.1 \
     EDGE_HOSTNAME= \
     EDGE_NATS_PROXY_PORT= \
     EDGE_ACCESS_ACCOUNT_TOKEN= \
-    EDGE_TOKEN=
+    EDGE_API_TOKEN=

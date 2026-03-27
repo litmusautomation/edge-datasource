@@ -25,7 +25,7 @@ Grafana datasource plugin for Litmus Edge that enables real-time data streaming 
 ## Environment Setup
 
 - Node.js 22+ (see `.nvmrc`), Go version from `go.mod`, Mage, Docker with Compose v2
-- Copy `.env.example` to `.env`. For inside-LE mode (default), set `EDGE_DOCKER_GATEWAY_IP` if this instance does not use `10.30.50.1`; `EDGE_TOKEN` is optional for topic discovery. For external mode: set `EDGE_EXTERNAL=true`, `EDGE_HOSTNAME`, and `EDGE_ACCESS_ACCOUNT_TOKEN`. Set `EDGE_NATS_PROXY_PORT` if the live stream does not use `4222`.
+- Copy `.env.example` to `.env`. For inside-LE mode (default), set `EDGE_DOCKER_GATEWAY_IP` if this instance does not use `10.30.50.1`; `EDGE_API_TOKEN` is optional for topic discovery. For external mode: set `EDGE_EXTERNAL=true`, `EDGE_HOSTNAME`, and `EDGE_ACCESS_ACCOUNT_TOKEN`. Set `EDGE_NATS_PROXY_PORT` if the live stream does not use `4222`.
 
 ## Commit Style
 

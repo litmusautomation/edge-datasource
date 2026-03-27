@@ -80,7 +80,7 @@ func TestCheckHealth_DeviceHubOk(t *testing.T) {
 	res, err := ds.CheckHealth(context.Background(), &backend.CheckHealthRequest{})
 	require.NoError(t, err)
 	assert.Equal(t, backend.HealthStatusOk, res.Status)
-	assert.Contains(t, res.Message, "Topic autocomplete is working")
+	assert.Contains(t, res.Message, "Topic discovery is working")
 }
 
 func TestCheckHealth_DeviceHubUnauthorized(t *testing.T) {
@@ -89,7 +89,7 @@ func TestCheckHealth_DeviceHubUnauthorized(t *testing.T) {
 	res, err := ds.CheckHealth(context.Background(), &backend.CheckHealthRequest{})
 	require.NoError(t, err)
 	assert.Equal(t, backend.HealthStatusError, res.Status)
-	assert.Contains(t, res.Message, "EDGE Token is invalid or expired")
+	assert.Contains(t, res.Message, "API Token is invalid or expired")
 }
 
 func TestCheckHealth_DeviceHubUnreachable(t *testing.T) {

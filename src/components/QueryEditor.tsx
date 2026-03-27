@@ -28,7 +28,7 @@ export function QueryEditor({ query, onChange, onRunQuery, datasource }: Props) 
     cachedTopicsRef.current = [];
   }, [datasource, probeKey]);
 
-  // Probe to detect EDGE Token status. Runs on mount and on retry.
+  // Probe to detect API Token status. Runs on mount and on retry.
   useEffect(() => {
     let cancelled = false;
     datasource
@@ -220,14 +220,14 @@ function AutocompleteHint({ status, onRetry }: { status: AutocompleteStatus; onR
   if (status === 'no_token') {
     return (
       <Text element="p" variant="bodySmall" color="secondary">
-        <Icon name="info-circle" size="sm" /> Add an EDGE Token in datasource settings to enable autocomplete.
+        <Icon name="info-circle" size="sm" /> Add an API Token in datasource settings to enable topic discovery.
       </Text>
     );
   }
   if (status === 'unauthorized') {
     return (
       <Text element="p" variant="bodySmall" color="warning">
-        <Icon name="exclamation-triangle" size="sm" /> Autocomplete unavailable: EDGE Token is invalid or expired.
+        <Icon name="exclamation-triangle" size="sm" /> Autocomplete unavailable: API Token is invalid or expired.
       </Text>
     );
   }

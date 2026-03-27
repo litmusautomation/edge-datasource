@@ -46,7 +46,7 @@ datasources:
       externalEdge: false
       gatewayIp: ${EDGE_DOCKER_GATEWAY_IP}
     secureJsonData:
-      apiToken: ${EDGE_TOKEN}
+      apiToken: ${EDGE_API_TOKEN}
 ```
 
 Provisioning example for external mode:
@@ -64,7 +64,7 @@ datasources:
       natsProxyPort: ${EDGE_NATS_PROXY_PORT}
     secureJsonData:
       token: ${EDGE_ACCESS_ACCOUNT_TOKEN}
-      apiToken: ${EDGE_TOKEN}
+      apiToken: ${EDGE_API_TOKEN}
 ```
 
 Note: the plugin is signed for localhost root URLs. If your Grafana instance uses a different `root_url`, either align it with one of the signed localhost URLs or explicitly allow the plugin with `GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=litmus-edge-datasource`.

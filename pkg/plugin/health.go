@@ -44,17 +44,17 @@ func (d *EdgeDatasource) CheckHealth(ctx context.Context, req *backend.CheckHeal
 	if d.deviceHub == nil {
 		return &backend.CheckHealthResult{
 			Status:  backend.HealthStatusOk,
-			Message: "Connected to the Edge. Tip: enable topic autocomplete for search-as-you-type suggestions.",
+			Message: "Connected to the Edge. Tip: add an API Token to enable topic discovery.",
 		}, nil
 	}
 
-	// Validate the Edge API connection when an EDGE Token is configured.
+	// Validate the Edge API connection when an API Token is configured.
 	if _, err := d.deviceHub.SearchTopics(ctx, ""); err != nil {
 		var message string
 		if errors.Is(err, edge.ErrUnauthorized) {
-			message = "Topic autocomplete: EDGE Token is invalid or expired"
+			message = "Topic discovery: API Token is invalid or expired"
 		} else {
-			message = "Topic autocomplete: could not reach the Edge API"
+			message = "Topic discovery: could not reach the Edge API"
 		}
 
 		details, _ := json.Marshal(map[string]string{
@@ -71,6 +71,6 @@ func (d *EdgeDatasource) CheckHealth(ctx context.Context, req *backend.CheckHeal
 
 	return &backend.CheckHealthResult{
 		Status:  backend.HealthStatusOk,
-		Message: "Connected to the Edge. Topic autocomplete is working.",
+		Message: "Connected to the Edge. Topic discovery is working.",
 	}, nil
 }

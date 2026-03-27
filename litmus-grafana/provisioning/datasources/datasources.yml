@@ -1,8 +1,8 @@
 # Inside Litmus Edge (default): use EDGE_DOCKER_GATEWAY_IP to reach Litmus Edge
-# from the container. NATS Proxy requires no credentials. Only EDGE_TOKEN
-# is needed (for topic autocomplete via the DeviceHub API).
+# from the container. NATS Proxy requires no credentials. Only EDGE_API_TOKEN
+# is needed (for topic discovery via the DeviceHub API).
 #
-#   docker run -e EDGE_DOCKER_GATEWAY_IP=10.30.50.1 -e EDGE_TOKEN=<api-token> litmus-grafana
+#   docker run -e EDGE_DOCKER_GATEWAY_IP=10.30.50.1 -e EDGE_API_TOKEN=<api-token> litmus-grafana
 #
 # External mode: set EDGE_EXTERNAL=true and provide the Litmus Edge
 # address + token.
@@ -11,7 +11,7 @@
 #              -e EDGE_HOSTNAME=172.17.0.1:8443 \
 #              -e EDGE_NATS_PROXY_PORT=4222 \
 #              -e EDGE_ACCESS_ACCOUNT_TOKEN=<token> \
-#              -e EDGE_TOKEN=<api-token> \
+#              -e EDGE_API_TOKEN=<api-token> \
 #              litmus-grafana
 apiVersion: 1
 
@@ -30,4 +30,4 @@ datasources:
       natsProxyPort: ${EDGE_NATS_PROXY_PORT}
     secureJsonData:
       token: ${EDGE_ACCESS_ACCOUNT_TOKEN}
-      apiToken: ${EDGE_TOKEN}
+      apiToken: ${EDGE_API_TOKEN}

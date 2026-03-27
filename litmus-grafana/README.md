@@ -28,12 +28,12 @@ The Litmus Edge datasource is already installed and provisioned as the default.
 
 ### Inside Litmus Edge (default)
 
-When running as a container inside Litmus Edge, the plugin reaches Litmus Edge through `EDGE_DOCKER_GATEWAY_IP` and connects to NATS without credentials. The image does not auto-detect this address, so update it if your instance does not use the default `10.30.50.1` gateway. `EDGE_TOKEN` is optional, but recommended for topic discovery:
+When running as a container inside Litmus Edge, the plugin reaches Litmus Edge through `EDGE_DOCKER_GATEWAY_IP` and connects to NATS without credentials. The image does not auto-detect this address, so update it if your instance does not use the default `10.30.50.1` gateway. `EDGE_API_TOKEN` is optional, but recommended for topic discovery:
 
 ```bash
 docker run -p 3000:3000 \
   -e EDGE_DOCKER_GATEWAY_IP=10.30.50.1 \
-  -e EDGE_TOKEN=<your-edge-token> \
+  -e EDGE_API_TOKEN=<your-edge-token> \
   us-docker.pkg.dev/litmus-customer-facing/litmus-solutions/litmus-grafana
 ```
 
@@ -47,7 +47,7 @@ docker run -p 3000:3000 \
   -e EDGE_HOSTNAME=172.17.0.1:8443 \
   -e EDGE_NATS_PROXY_PORT=4222 \
   -e EDGE_ACCESS_ACCOUNT_TOKEN=<your-access-account-token> \
-  -e EDGE_TOKEN=<your-edge-token> \
+  -e EDGE_API_TOKEN=<your-edge-token> \
   us-docker.pkg.dev/litmus-customer-facing/litmus-solutions/litmus-grafana
 ```
 
@@ -62,7 +62,7 @@ The Litmus Edge datasource is automatically provisioned as the default. No manua
 | `EDGE_HOSTNAME`             | External only | Litmus Edge address. Use `host` or `host:port`                                                                             |
 | `EDGE_NATS_PROXY_PORT`      | No            | NATS Proxy port used for live data streaming. Default: `4222`                                                              |
 | `EDGE_ACCESS_ACCOUNT_TOKEN` | External only | Access Account token with NATS Proxy read access                                                                           |
-| `EDGE_TOKEN`                | No            | Optional token used for topic discovery via the DeviceHub API                                                              |
+| `EDGE_API_TOKEN`            | No            | Optional API token used for topic discovery via the DeviceHub API                                                          |
 
 ## Plugin signature
 

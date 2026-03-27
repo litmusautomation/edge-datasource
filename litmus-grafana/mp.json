@@ -1,0 +1,85 @@
+{
+  "application": {
+    "id": "c79d7be8-d8ee-4390-81ff-95f2cd2576b2",
+    "name": "Litmus Grafana",
+    "description": "Litmus Grafana is a ready-to-use Grafana image with built-in plugins and the Litmus Edge Datasource for real-time edge stream visualization inside Litmus Edge.",
+    "publisher_name": "Litmus",
+    "category": "Visualization",
+    "catalog_id": "9e55f304-b630-453c-aae9-f534a1a796db",
+    "icon": ""
+  },
+  "releases": [
+    {
+      "application_id": "c79d7be8-d8ee-4390-81ff-95f2cd2576b2",
+      "name": "latest",
+      "readme": "Litmus Grafana is a preconfigured Grafana image for Litmus Edge with bundled visualization plugins and the Litmus Edge datasource preinstalled. Set **Edge Docker Gateway IP** if your instance does not use the default `10.30.50.1` gateway, and optionally provide an **API Token** for topic discovery in the query editor. For full setup, usage, and troubleshooting details, see the [Litmus Grafana README](https://github.com/litmusautomation/edge-datasource/blob/main/litmus-grafana/README.md).",
+      "description": "Ready-to-use Grafana for Litmus Edge with built-in plugins and the Litmus Edge datasource, configured for inside-LE deployments.",
+      "components": [
+        {
+          "id": "788",
+          "name": "LitmusGrafana",
+          "repository_id": "cdba8a25-7728-414d-8a2c-50a931f8ffa3",
+          "image": "us-docker.pkg.dev/litmus-customer-facing/litmus-solutions/litmus-grafana:latest",
+          "canonicalImage": "us-docker.pkg.dev/litmus-customer-facing/litmus-solutions/litmus-grafana:latest",
+          "environment": {
+            "EDGE_EXTERNAL": "false",
+            "EDGE_DOCKER_GATEWAY_IP": "${EDGE_DOCKER_GATEWAY_IP}",
+            "EDGE_API_TOKEN": "${EDGE_API_TOKEN}",
+            "GF_SERVER_HTTP_PORT": "${GF_SERVER_HTTP_PORT}"
+          },
+          "ports": [
+            {
+              "host_ip": "",
+              "target": "${GF_SERVER_HTTP_PORT}",
+              "published": "${GF_SERVER_HTTP_PORT}",
+              "protocol": "tcp",
+              "mode": "host"
+            }
+          ],
+          "restart": "unless-stopped",
+          "tty": true,
+          "stdin_open": true,
+          "networkMode": "bridge",
+          "logging": { "Driver": "", "Options": null }
+        }
+      ],
+      "variables": [
+        {
+          "name": "GF_SERVER_HTTP_PORT",
+          "description": "HTTP port exposed by the Grafana container.",
+          "label": "Grafana HTTP Port",
+          "required": false,
+          "default": "3000",
+          "type": "int",
+          "options": null,
+          "private": false
+        },
+        {
+          "name": "EDGE_DOCKER_GATEWAY_IP",
+          "description": "Docker gateway IP used to reach Litmus Edge from the Grafana container. Update it if this instance uses a different gateway IP.",
+          "label": "Edge Docker Gateway IP",
+          "required": false,
+          "default": "10.30.50.1",
+          "type": "string",
+          "options": null,
+          "private": false
+        },
+        {
+          "name": "EDGE_API_TOKEN",
+          "description": "Optional API Token used for topic discovery in the query editor.",
+          "label": "API Token",
+          "required": false,
+          "default": "",
+          "type": "string",
+          "options": null,
+          "private": false
+        }
+      ],
+      "state": "draft",
+      "compose": "",
+      "type": "simple",
+      "submitted_at": ""
+    }
+  ],
+  "repositories": {}
+}
