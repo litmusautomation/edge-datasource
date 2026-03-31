@@ -57,6 +57,13 @@ if [[ $# -eq 0 ]]; then
 	    npm run build
   )
 
+  printf 'Signing plugin\n'
+  (
+    cd "$ROOT_DIR"
+    if [ -f .env ]; then set -a; source .env; set +a; fi
+    npx --yes @grafana/sign-plugin@latest --rootUrls "$ROOT_URLS"
+  )
+
   tmp_dir=$(mktemp -d)
   archive_dir="${tmp_dir}/${PLUGIN_ID}"
   archive_path="${tmp_dir}/${PLUGIN_ID}-${PLUGIN_VERSION}.zip"

@@ -33,7 +33,7 @@
     "screenshots": [
       {
         "name": "Litmus Edge query editor and live panel",
-        "url": "img/query-editor-screenshot.png"
+        "path": "img/query-editor-screenshot.png"
       }
     ],
     "version": "%VERSION%",

@@ -12,7 +12,7 @@ on:
         default: ''
 
 env:
-  REGISTRY: us-docker.pkg.dev/litmus-customer-facing/litmus-solutions
+  REGISTRY: litmusedge.azurecr.io
   IMAGE_NAME: litmus-grafana
   ROOT_URLS: http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:8080,http://localhost:8443
 
@@ -68,11 +68,14 @@ jobs:
           mkdir -p litmus-edge-datasource
           cp -r dist/* litmus-edge-datasource/
           zip -r "litmus-edge-datasource-${VERSION}.zip" litmus-edge-datasource/
+          cp "litmus-edge-datasource-${VERSION}.zip" litmus-edge-datasource.zip
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: litmus-edge-datasource-*.zip
+          files: |
+            litmus-edge-datasource-*.zip
+            litmus-edge-datasource.zip
           generate_release_notes: true
 
   docker:
@@ -86,12 +89,11 @@ jobs:
           name: dist
           path: dist/
 
-      - name: Login to Artifact Registry
-        env:
-          DOCKER_AUTH: ${{ secrets.DOCKER_AUTH_CONFIG }}
-        run: |
-          mkdir -p "$HOME/.docker"
-          echo "$DOCKER_AUTH" > "$HOME/.docker/config.json"
+      - name: Login to ACR
+        run: >
+          docker login litmusedge.azurecr.io
+          -u "${{ secrets.ACR_USERNAME }}"
+          -p "${{ secrets.ACR_PASSWORD }}"
 
       - name: Determine image tag
         run: |

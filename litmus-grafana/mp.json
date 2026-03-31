@@ -19,8 +19,8 @@
           "id": "788",
           "name": "LitmusGrafana",
           "repository_id": "cdba8a25-7728-414d-8a2c-50a931f8ffa3",
-          "image": "us-docker.pkg.dev/litmus-customer-facing/litmus-solutions/litmus-grafana:latest",
-          "canonicalImage": "us-docker.pkg.dev/litmus-customer-facing/litmus-solutions/litmus-grafana:latest",
+          "image": "litmusedge.azurecr.io/litmus-grafana:latest",
+          "canonicalImage": "litmusedge.azurecr.io/litmus-grafana:latest",
           "environment": {
             "EDGE_EXTERNAL": "false",
             "EDGE_DOCKER_GATEWAY_IP": "${EDGE_DOCKER_GATEWAY_IP}",

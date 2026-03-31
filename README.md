@@ -14,7 +14,7 @@ Use the bundled Grafana image when you want the fastest path to a working setup:
 
 ```bash
 docker run -p 3000:3000 \
-  us-docker.pkg.dev/litmus-customer-facing/litmus-solutions/litmus-grafana:latest
+  litmusedge.azurecr.io/litmus-grafana:latest
 ```
 
 The image already includes the Litmus Edge data source plugin and provisions it automatically. See [litmus-grafana/README.md](https://github.com/litmusautomation/edge-datasource/blob/main/litmus-grafana/README.md) for environment variables and external-connection setup.
@@ -27,11 +27,9 @@ Example with Grafana CLI:
 
 ```bash
 grafana cli \
-  --pluginUrl https://github.com/litmusautomation/edge-datasource/releases/download/v<VERSION>/litmus-edge-datasource-<VERSION>.zip \
+  --pluginUrl https://github.com/litmusautomation/edge-datasource/releases/latest/download/litmus-edge-datasource.zip \
   plugins install litmus-edge-datasource
 ```
-
-Replace `<VERSION>` with a released plugin version such as `0.1.0`.
 
 After installation, restart Grafana and add or provision a data source of type `litmus-edge-datasource`.
 

@@ -8,7 +8,7 @@ Run the latest prebuilt image:
 
 ```bash
 docker run -p 3000:3000 \
-  us-docker.pkg.dev/litmus-customer-facing/litmus-solutions/litmus-grafana:latest
+  litmusedge.azurecr.io/litmus-grafana:latest
 ```
 
 Open `http://localhost:3000` in your browser (default credentials: `admin` / `admin`).
@@ -34,7 +34,7 @@ When running as a container inside Litmus Edge, the plugin reaches Litmus Edge t
 docker run -p 3000:3000 \
   -e EDGE_DOCKER_GATEWAY_IP=10.30.50.1 \
   -e EDGE_API_TOKEN=<your-edge-token> \
-  us-docker.pkg.dev/litmus-customer-facing/litmus-solutions/litmus-grafana
+  litmusedge.azurecr.io/litmus-grafana
 ```
 
 ### External Litmus Edge
@@ -48,7 +48,7 @@ docker run -p 3000:3000 \
   -e EDGE_NATS_PROXY_PORT=4222 \
   -e EDGE_ACCESS_ACCOUNT_TOKEN=<your-access-account-token> \
   -e EDGE_API_TOKEN=<your-edge-token> \
-  us-docker.pkg.dev/litmus-customer-facing/litmus-solutions/litmus-grafana
+  litmusedge.azurecr.io/litmus-grafana
 ```
 
 The Litmus Edge datasource is automatically provisioned as the default. No manual configuration is needed — just set the environment variables and go.
