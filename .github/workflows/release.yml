@@ -128,3 +128,23 @@ jobs:
           if [ "$IS_TAG" = "true" ]; then
             docker push "${REGISTRY}/${IMAGE_NAME}:latest"
           fi
+
+  publish:
+    needs: [release, docker]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - run: npm ci --no-audit --no-fund
+
+      - name: Publish solution to Contentful
+        run: node scripts/publish-solution.js --version "${{ github.ref_name }}"
+        env:
+          CONTENTFUL_SPACE_ID: ${{ secrets.CONTENTFUL_SPACE_ID }}
+          CONTENTFUL_MANAGEMENT_TOKEN: ${{ secrets.CONTENTFUL_MANAGEMENT_TOKEN }}

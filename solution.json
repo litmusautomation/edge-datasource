@@ -1,0 +1,29 @@
+{
+  "name": "Litmus Grafana",
+  "slug": "litmus-grafana",
+  "excerpt": "Real-time edge data visualization with Grafana and Litmus Edge",
+  "description": "Litmus Grafana is a preconfigured Grafana image bundled with the Litmus Edge Datasource and visualization plugins. Deploy a single container to start streaming live edge data into dashboards — no manual plugin installation or datasource setup required. See [GitHub](https://github.com/litmusautomation/edge-datasource) for full a complete guide.",
+  "vendor": "Litmus",
+  "vendorUrl": "https://litmus.io",
+  "documentationUrl": "https://github.com/litmusautomation/edge-datasource",
+  "downloadingUrl": "https://portal.litmus.io/accelerators/litmus-grafana?tab=downloads",
+  "productCategory": ["Litmus Edge"],
+  "litmusEdgeVersions": ["3.x.x"],
+  "licenseType": "Open Source",
+  "userSupport": "Community",
+  "verified": true,
+  "featured": false,
+  "downloads": {},
+  "logo": "1HeBckXA45MVXv0D2rPd2A",
+  "featuredImage": "4Lfyph4QX7VxOnkTwY2EXP",
+  "screenshots": ["OyisOYTUW8SrYTXbQ3hsS", "4Lfyph4QX7VxOnkTwY2EXP"],
+  "tags": [
+    "1NK9r2PplWcGcEpkGMJBOd",
+    "n2ZPXwMfJHE9rKFscwk8S",
+    "4oZjfZJ0OUC6oHSXmhKr0t",
+    "3dIXptoYWXqrylhMFImIkd",
+    "5FIUyVl3RRrOcYHH3z5BEs"
+  ],
+  "relatedSolutions": ["v2uRP6W8jVIOQSQsHG0nQ", "rQprrhT77A5nuRGgLIYvF", "6pkiee4S1ScA2Sj1Kcp8SC"],
+  "section": "LnsjCGobk7qqAgHWh8MLa"
+}
