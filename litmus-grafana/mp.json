@@ -2,7 +2,7 @@
   "application": {
     "id": "c79d7be8-d8ee-4390-81ff-95f2cd2576b2",
     "name": "Litmus Grafana",
-    "description": "Litmus Grafana is a ready-to-use Grafana image with built-in plugins and the Litmus Edge Datasource for real-time edge stream visualization inside Litmus Edge.",
+    "description": "Litmus Grafana is a ready-to-use Grafana image with built-in plugins and the Litmus Edge Datasource for real-time edge stream visualization.",
     "publisher_name": "Litmus",
     "category": "Visualization",
     "catalog_id": "9e55f304-b630-453c-aae9-f534a1a796db",
@@ -11,27 +11,26 @@
   "releases": [
     {
       "application_id": "c79d7be8-d8ee-4390-81ff-95f2cd2576b2",
-      "name": "latest-test",
-      "readme": "Litmus Grafana is a preconfigured Grafana image for Litmus Edge with bundled visualization plugins and the Litmus Edge Datasource preinstalled.\n### Litmus Edge Datasource\nSet **Edge Docker Gateway IP** if your instance does not use the default `10.30.50.1` gateway, and optionally provide an **API Token** for topic discovery in the query editor.\nFor full setup, usage, and troubleshooting details, see the [Litmus Grafana README](https://github.com/litmusautomation/edge-datasource/blob/main/litmus-grafana/README.md).",
+      "name": "latest",
+      "readme": "Litmus Grafana is a preconfigured Grafana image for Litmus Edge with bundled visualization plugins and the Litmus Edge Datasource preinstalled.\n\nFor full setup, usage, and troubleshooting details, see the [Litmus Grafana README](https://github.com/litmusautomation/edge-datasource/blob/main/litmus-grafana/README.md).",
       "description": "Litmus Grafana is a ready-to-use Grafana image with built-in plugins and the Litmus Edge Datasource for real-time edge stream visualization.",
       "components": [
         {
-          "id": "788",
-          "name": "LitmusGrafana",
-          "repository_id": "cdba8a25-7728-414d-8a2c-50a931f8ffa3",
+          "id": "800",
+          "name": "Grafana",
+          "repository_id": "15dcadd9-3741-4e9b-919f-dc06ca57442b",
           "image": "litmusedge.azurecr.io/litmus-grafana:latest",
           "canonicalImage": "litmusedge.azurecr.io/litmus-grafana:latest",
           "environment": {
-            "EDGE_EXTERNAL": "false",
-            "EDGE_DOCKER_GATEWAY_IP": "${EDGE_DOCKER_GATEWAY_IP}",
             "EDGE_API_TOKEN": "${EDGE_API_TOKEN}",
-            "GF_SERVER_HTTP_PORT": "${GF_SERVER_HTTP_PORT}"
+            "EDGE_DOCKER_GATEWAY_IP": "${EDGE_DOCKER_GATEWAY_IP}",
+            "EDGE_EXTERNAL": "false"
           },
           "ports": [
             {
               "host_ip": "",
-              "target": "${GF_SERVER_HTTP_PORT}",
-              "published": "${GF_SERVER_HTTP_PORT}",
+              "target": "3000",
+              "published": "${PORT}",
               "protocol": "tcp",
               "mode": "host"
             }
@@ -45,9 +44,9 @@
       ],
       "variables": [
         {
-          "name": "GF_SERVER_HTTP_PORT",
-          "description": "HTTP port exposed by the Grafana container.",
-          "label": "Grafana HTTP Port",
+          "name": "PORT",
+          "description": "HTTP port to access the Grafana application. Update it if you're already using the 3000 port.",
+          "label": "Port",
           "required": false,
           "default": "3000",
           "type": "int",
@@ -75,10 +74,24 @@
           "private": false
         }
       ],
-      "state": "draft",
+      "state": "submitted",
       "compose": "",
       "type": "simple",
-      "submitted_at": ""
+      "submitted_at": "2026-04-01 20:56"
     }
-  ]
+  ],
+  "repositories": {
+    "15dcadd9-3741-4e9b-919f-dc06ca57442b": {
+      "id": "15dcadd9-3741-4e9b-919f-dc06ca57442b",
+      "type": "DOCKER",
+      "config": {
+        "caCert": "",
+        "description": "Litmus Solutions - ACR",
+        "loginServer": "https://litmusedge.azurecr.io",
+        "name": "Public Solutions",
+        "skipTlsVerify": false
+      },
+      "url": "https://litmusedge.azurecr.io"
+    }
+  }
 }
