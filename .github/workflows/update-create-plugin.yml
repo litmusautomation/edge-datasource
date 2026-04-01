@@ -17,6 +17,6 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: grafana/plugin-actions/create-plugin-update@create-plugin-update/v2.0.1
+      - uses: grafana/plugin-actions/create-plugin-update@create-plugin-update/v2.0.2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
