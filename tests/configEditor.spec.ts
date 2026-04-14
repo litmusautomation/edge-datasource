@@ -3,7 +3,7 @@ import { test, expect } from '@grafana/plugin-e2e';
 const remoteEdgeSwitchName = 'Connect to remote Litmus Edge';
 const edgeDockerGatewayIPPlaceholder = '10.30.50.1';
 const litmusEdgeAddressPlaceholder = '172.17.0.1 or 172.17.0.1:8443';
-const accessAccountTokenPlaceholder = 'Access Account token';
+const accessAccountApiKeyPlaceholder = 'Access Account API key';
 
 async function setRemoteConnection(page: any, enabled: boolean) {
   const remoteConnectionSwitch = page.getByRole('switch', { name: remoteEdgeSwitchName });
@@ -28,7 +28,7 @@ test.describe('Config editor — connection mode', () => {
 
     // Remote-only fields are hidden by default
     await expect(page.getByPlaceholder(litmusEdgeAddressPlaceholder)).not.toBeVisible();
-    await expect(page.getByPlaceholder(accessAccountTokenPlaceholder)).not.toBeVisible();
+    await expect(page.getByPlaceholder(accessAccountApiKeyPlaceholder)).not.toBeVisible();
 
     // Topic discovery is always available
     await expect(page.getByText('Topic Discovery', { exact: true })).toBeVisible();
@@ -42,11 +42,11 @@ test.describe('Config editor — connection mode', () => {
 
     await expect(page.getByText('Litmus Edge Address *', { exact: true })).toBeVisible();
     await expect(page.getByText('NATS Proxy Port', { exact: true })).toBeVisible();
-    await expect(page.getByText('Access Account Token *', { exact: true })).toBeVisible();
+    await expect(page.getByText('Access Account API Key *', { exact: true })).toBeVisible();
     await expect(page.getByPlaceholder(edgeDockerGatewayIPPlaceholder)).not.toBeVisible();
     await expect(page.getByPlaceholder(litmusEdgeAddressPlaceholder)).toBeVisible();
     await expect(page.getByPlaceholder('4222')).toBeVisible();
-    await expect(page.getByPlaceholder(accessAccountTokenPlaceholder)).toBeVisible();
+    await expect(page.getByPlaceholder(accessAccountApiKeyPlaceholder)).toBeVisible();
   });
 
   test('hides remote fields and clears address when disabled', async ({ createDataSourceConfigPage, page }) => {
@@ -63,7 +63,7 @@ test.describe('Config editor — connection mode', () => {
     // Toggle OFF — fields hidden, address cleared, gateway preserved
     await setRemoteConnection(page, false);
     await expect(page.getByPlaceholder(litmusEdgeAddressPlaceholder)).not.toBeVisible();
-    await expect(page.getByPlaceholder(accessAccountTokenPlaceholder)).not.toBeVisible();
+    await expect(page.getByPlaceholder(accessAccountApiKeyPlaceholder)).not.toBeVisible();
     await expect(page.getByPlaceholder(edgeDockerGatewayIPPlaceholder)).toHaveValue('10.88.0.1');
 
     // Toggle back ON — address should be empty (was cleared)
@@ -93,7 +93,7 @@ test.describe('Config editor — connection mode', () => {
 
     await setRemoteConnection(page, true);
     await page.getByPlaceholder(litmusEdgeAddressPlaceholder).fill('192.168.0.999');
-    await page.getByPlaceholder(accessAccountTokenPlaceholder).fill('invalid-token');
+    await page.getByPlaceholder(accessAccountApiKeyPlaceholder).fill('invalid-token');
 
     await configPage.saveAndTest();
 
@@ -116,7 +116,7 @@ test.describe('Config editor — topic discovery', () => {
     await setRemoteConnection(page, true);
 
     await expect(page.getByPlaceholder(litmusEdgeAddressPlaceholder)).toBeVisible();
-    await expect(page.getByPlaceholder(accessAccountTokenPlaceholder)).toBeVisible();
+    await expect(page.getByPlaceholder(accessAccountApiKeyPlaceholder)).toBeVisible();
     await expect(page.getByPlaceholder('API token')).toBeVisible();
   });
 
@@ -147,7 +147,7 @@ test.describe('Config editor — topic discovery', () => {
 
     await expect(page.getByPlaceholder(litmusEdgeAddressPlaceholder)).toBeVisible();
     await expect(page.getByPlaceholder('4222')).toBeVisible();
-    await expect(page.getByPlaceholder(accessAccountTokenPlaceholder)).toBeVisible();
+    await expect(page.getByPlaceholder(accessAccountApiKeyPlaceholder)).toBeVisible();
     await expect(page.getByPlaceholder('API token')).toBeVisible();
   });
 });

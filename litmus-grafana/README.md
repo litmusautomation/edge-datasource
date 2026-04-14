@@ -39,7 +39,7 @@ docker run -p 3000:3000 \
 
 ### External Litmus Edge
 
-To connect to a remote Litmus Edge instance, set `EDGE_EXTERNAL=true` and provide the Litmus Edge address, NATS Proxy port, and Access Account API key:
+To connect to a remote Litmus Edge instance, set `EDGE_EXTERNAL=true` and provide the Litmus Edge address, NATS Proxy port, and Access Account API Key:
 
 ```bash
 docker run -p 3000:3000 \
@@ -61,7 +61,7 @@ The Litmus Edge datasource is automatically provisioned as the default. No manua
 | `EDGE_DOCKER_GATEWAY_IP`      | No            | Docker gateway IP used inside Litmus Edge. Default: `10.30.50.1`. Update it when your instance uses a different gateway IP |
 | `EDGE_HOSTNAME`               | External only | Litmus Edge address. Use `host` or `host:port`                                                                             |
 | `EDGE_NATS_PROXY_PORT`        | No            | NATS Proxy port used for live data streaming. Default: `4222`                                                              |
-| `EDGE_ACCESS_ACCOUNT_API_KEY` | External only | Access Account API key with NATS Proxy read access                                                                         |
+| `EDGE_ACCESS_ACCOUNT_API_KEY` | External only | Access Account API Key with NATS Proxy read access                                                                         |
 | `EDGE_API_TOKEN`              | No            | Optional API token used for topic discovery via the DeviceHub API                                                          |
 
 ## Plugin signature

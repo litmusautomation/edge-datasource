@@ -155,11 +155,11 @@ export function ConfigEditor(props: Props) {
             >
               <div style={CONNECTION_FIELD_CELL_STYLE}>
                 <Field
-                  label="Access Account Token"
+                  label="Access Account API Key"
                   required
                   description={
                     <>
-                      Token used to access the NATS Proxy.{' '}
+                      API key used to access the NATS Proxy.{' '}
                       <a href={ACCESS_ACCOUNT_DOCS} target="_blank" rel="noreferrer">
                         Learn more
                       </a>
@@ -168,7 +168,7 @@ export function ConfigEditor(props: Props) {
                 >
                   <SecretInput
                     width={secretInputWidth}
-                    placeholder="Access Account token"
+                    placeholder="Access Account API key"
                     isConfigured={!!secureJsonFields?.token}
                     onReset={() => updateDatasourcePluginResetOption(props, 'token')}
                     onBlur={onUpdateDatasourceSecureJsonDataOption(props, 'token')}

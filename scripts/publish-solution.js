@@ -85,12 +85,12 @@ const envPath = path.resolve('.env');
 if (fs.existsSync(envPath)) {
   for (const line of fs.readFileSync(envPath, 'utf8').split('\n')) {
     const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
+    if (!trimmed || trimmed.startsWith('#')) {continue;}
     const eqIdx = trimmed.indexOf('=');
-    if (eqIdx === -1) continue;
+    if (eqIdx === -1) {continue;}
     const key = trimmed.slice(0, eqIdx);
     const val = trimmed.slice(eqIdx + 1).replace(/^(['"])(.*)\1$/, '$2');
-    if (!process.env[key]) process.env[key] = val;
+    if (!process.env[key]) {process.env[key] = val;}
   }
 }
 

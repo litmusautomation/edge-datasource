@@ -70,7 +70,7 @@ func TestCheckHealth_DisconnectedExternal(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, backend.HealthStatusError, res.Status)
 	assert.Contains(t, res.Message, "configured address")
-	assert.Contains(t, res.Message, "token has NATS Proxy read access")
+	assert.Contains(t, res.Message, "API key has NATS Proxy read access")
 	assert.Contains(t, res.Message, "Configured NATS Proxy port: 5222")
 }
 
@@ -142,7 +142,7 @@ func TestGetSettings_ExternalValidation(t *testing.T) {
 			name:     "external: missing token",
 			jsonData: `{"externalEdge": true, "hostname": "192.168.1.1"}`,
 			token:    "",
-			wantErr:  "Access Account token is required when connecting to an external Litmus Edge",
+			wantErr:  "Access Account API Key is required when connecting to an external Litmus Edge",
 		},
 		{
 			name:         "external: valid settings without apiToken",
