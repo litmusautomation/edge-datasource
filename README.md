@@ -63,7 +63,7 @@ datasources:
       hostname: ${EDGE_HOSTNAME}
       natsProxyPort: ${EDGE_NATS_PROXY_PORT}
     secureJsonData:
-      token: ${EDGE_ACCESS_ACCOUNT_TOKEN}
+      token: ${EDGE_ACCESS_ACCOUNT_API_KEY}
       apiToken: ${EDGE_API_TOKEN}
 ```
 
@@ -90,12 +90,12 @@ The plugin does not auto-detect this address. Update it if your Litmus Edge inst
 
 In the data source settings, turn on **Remote Connection** and provide:
 
-| Field                    | Description                                                                                                                     |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
-| **Litmus Edge Address**  | Hostname or IP address of your Litmus Edge instance. Add `:port` only when Litmus Edge uses a non-default port.                 |
-| **NATS Proxy Port**      | Port used for live data streaming. Default: `4222`.                                                                             |
-| **Access Account Token** | Token with [NATS Proxy](https://docs.litmus.io/litmusedge/product-features/system/access-control/tokens#nats-proxy) read access |
-| **API Token**            | Optional, but recommended for topic discovery in the query editor.                                                              |
+| Field                      | Description                                                                                                                       |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| **Litmus Edge Address**    | Hostname or IP address of your Litmus Edge instance. Add `:port` only when Litmus Edge uses a non-default port.                   |
+| **NATS Proxy Port**        | Port used for live data streaming. Default: `4222`.                                                                               |
+| **Access Account API Key** | API key with [NATS Proxy](https://docs.litmus.io/litmusedge/product-features/system/access-control/tokens#nats-proxy) read access |
+| **API Token**              | Optional, but recommended for topic discovery in the query editor.                                                                |
 
 The datasource uses the Litmus Edge address for connectivity and the NATS Proxy port for live streaming.
 
@@ -146,7 +146,7 @@ ${__field.labels.deviceName}.${__field.labels.tagName}
 | Problem                           | What to check                                                                                                                           |
 | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | **Save & test fails** (inside LE) | Is **Edge Docker Gateway IP** correct for this Litmus Edge instance? Can the container reach Litmus Edge on port `4222`?                |
-| **Save & test fails** (external)  | Is Litmus Edge reachable on the configured NATS Proxy port? Is the NATS Proxy enabled? Is the Access Account Token valid?               |
+| **Save & test fails** (external)  | Is Litmus Edge reachable on the configured NATS Proxy port? Is the NATS Proxy enabled? Is the Access Account API Key valid?             |
 | **No data**                       | The topic must be an exact NATS subject — no wildcards. Verify the device is publishing and check Grafana logs for `"Topic not found"`. |
 | **Stale data after reconnect**    | NATS may buffer messages while disconnected. Refresh the dashboard to clear stale frames.                                               |
 | **"Messages dropped"**            | The topic exceeds the 10 000-message buffer. Subscribe to a more specific subject.                                                      |

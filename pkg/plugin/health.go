@@ -15,7 +15,7 @@ const natsConnectErrorExternal = `Could not connect to Litmus Edge.
 Please check:
 • Litmus Edge is reachable at the configured address
 • NATS Proxy is enabled and reachable on the configured NATS Proxy port
-• The token has NATS Proxy read access`
+• The API key has NATS Proxy read access`
 
 const natsConnectErrorInternal = `Could not connect to Litmus Edge.
 

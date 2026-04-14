@@ -71,7 +71,7 @@ func getSettings(s backend.DataSourceInstanceSettings) (*edge.ConnectionOptions,
 			return nil, "", fmt.Errorf("Litmus Edge address is required when connecting to an external Litmus Edge")
 		}
 		if opts.Token == "" {
-			return nil, "", fmt.Errorf("Access Account token is required when connecting to an external Litmus Edge")
+			return nil, "", fmt.Errorf("Access Account API Key is required when connecting to an external Litmus Edge")
 		}
 	} else {
 		gatewayIP := strings.TrimSpace(opts.GatewayIP)
