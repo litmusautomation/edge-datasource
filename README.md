@@ -63,7 +63,7 @@ datasources:
       hostname: ${EDGE_HOSTNAME}
       natsProxyPort: ${EDGE_NATS_PROXY_PORT}
     secureJsonData:
-      token: ${EDGE_ACCESS_ACCOUNT_TOKEN}
+      token: ${EDGE_ACCESS_ACCOUNT_API_KEY}
       apiToken: ${EDGE_API_TOKEN}
 ```
 
