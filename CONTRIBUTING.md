@@ -80,7 +80,7 @@ npm run validate:plugin
 To validate a release archive instead:
 
 ```bash
-npm run validate:plugin -- https://github.com/litmusautomation/edge-datasource/releases/download/v0.1.0/litmus-edge-datasource-0.1.0.zip
+npm run validate:plugin -- https://github.com/litmusautomation/edge-datasource/releases/download/v0.1.1/litmus-edge-datasource-0.1.1.zip
 ```
 
 Optional environment variables:

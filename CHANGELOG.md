@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.1
+
+### Dependencies
+
+- Upgrade OpenTelemetry Go modules to v1.43.0 and related `golang.org/x` / gRPC pins (addresses Dependabot alerts).
+- Pin `follow-redirects` to ^1.16.0 and refresh npm lockfile (axios, lodash) for patched transitive versions.
+
+### Configuration
+
+- External mode: `EDGE_ACCESS_ACCOUNT_TOKEN` was renamed to `EDGE_ACCESS_ACCOUNT_API_KEY` — update `.env` and any deployment config that set the old name.
+
 ## 0.1.0 — Initial release
 
 ### Features

@@ -1,6 +1,6 @@
 {
   "name": "litmus-edge",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "The litmus Edge data source plugin enables the visualization of real time data streaming from the edge in Grafana",
   "scripts": {
     "build": "npm run build:frontend && npm run build:backend",
