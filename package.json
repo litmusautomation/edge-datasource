@@ -84,7 +84,7 @@
     "@grafana/data": "12.4.1",
     "@grafana/i18n": "12.4.1",
     "@grafana/plugin-ui": "^0.13.1",
-    "@grafana/runtime": "12.4.1",
+    "@grafana/runtime": "12.4.4",
     "@grafana/schema": "12.4.1",
     "@grafana/ui": "12.4.1",
     "react": "18.3.1",
