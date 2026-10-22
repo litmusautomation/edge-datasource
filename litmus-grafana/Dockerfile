@@ -1,4 +1,4 @@
-ARG GRAFANA_VERSION=latest
+ARG GRAFANA_VERSION=12.4.13
 FROM grafana/grafana:${GRAFANA_VERSION}
 
 # Community plugins

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.0
+
+### Security
+
+- Build with Go toolchain 1.26.10 (fixes stdlib `net/http`, `crypto/tls`, `crypto/x509` CVEs); upgrade `golang.org/x/net` to v0.61.0, `golang.org/x/crypto` to v0.58.0 and `grafana-plugin-sdk-go` to v0.297.0.
+- Upgrade `@grafana/*` packages to 12.4.13, run `npm audit fix`, and pin `moment` 2.31.0 and `uuid` ^11.1.1 (clears the critical `protobufjs` / `websocket-driver` alerts).
+- Docker image base pinned to Grafana 12.4.13 (latest patched 12.x); Grafana 13 is not yet supported.
+
 ## 0.1.1
 
 ### Dependencies
