@@ -43,7 +43,7 @@ jobs:
       - name: Sign plugin
         env:
           GRAFANA_ACCESS_POLICY_TOKEN: ${{ secrets.GRAFANA_ACCESS_POLICY_TOKEN }}
-        run: npx --yes @grafana/sign-plugin@latest --rootUrls "$ROOT_URLS"
+        run: npx --yes @grafana/sign-plugin@3 --rootUrls "$ROOT_URLS"
 
       - uses: actions/upload-artifact@v4
         with:
