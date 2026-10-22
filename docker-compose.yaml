@@ -3,7 +3,7 @@ services:
     platform: 'linux/amd64'
     build:
       args:
-        grafana_version: latest
+        grafana_version: 12.4.13
     ports:
       - 3000:3000/tcp
     extends:
