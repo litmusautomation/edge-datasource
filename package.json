@@ -18,7 +18,7 @@
     "up": "docker compose up --build -d",
     "down": "docker compose down -v",
     "restart": "npm run down && npm run up",
-    "sign": "npx --yes @grafana/sign-plugin@latest --rootUrls \"$ROOT_URLS\"",
+    "sign": "sign-plugin --rootUrls \"$ROOT_URLS\"",
     "server": "docker compose up --build",
     "docker:push-dev": "bash scripts/docker-push-dev.sh",
     "validate:plugin": "bash scripts/validate-plugin.sh",
@@ -29,6 +29,7 @@
   "devDependencies": {
     "@grafana/eslint-config": "9.0.0",
     "@grafana/plugin-e2e": "3.4.8",
+    "@grafana/sign-plugin": "^3.2.2",
     "@grafana/tsconfig": "2.0.1",
     "@playwright/test": "1.58.2",
     "@stylistic/eslint-plugin-ts": "4.4.1",
