@@ -2,21 +2,35 @@
   "name": "Litmus Grafana",
   "slug": "litmus-grafana",
   "excerpt": "Real-time edge data visualization with Grafana and Litmus Edge",
-  "description": "Litmus Grafana is a preconfigured Grafana image bundled with the Litmus Edge Datasource and visualization plugins. Deploy a single container to start streaming live edge data into dashboards — no manual plugin installation or datasource setup required. See [GitHub](https://github.com/litmusautomation/edge-datasource) for full a complete guide.",
+  "description": "Litmus Grafana streams live Litmus Edge data into Grafana dashboards. It has two parts. The **Litmus Edge data source plugin** subscribes to NATS topics on Litmus Edge and pushes the data to panels once per second. The **litmus-grafana Docker image** is Grafana with that plugin and extra visualization plugins already installed and configured. To add the plugin to an existing Grafana v12.2 or later, download the plugin zip from this page and follow the [installation guide](https://docs.litmus.io/solutions/litmus-edge-data-source-for-grafana). To start a new Grafana with everything preinstalled, pull the image litmusedge.azurecr.io/litmus-grafana:latest from the registry. Both require Litmus Edge v3.16 or later. The plugin shows live data only and does not store history. The [documentation](https://docs.litmus.io/solutions/litmus-edge-data-source-for-grafana) has the full guide.",
   "vendor": "Litmus",
   "vendorUrl": "https://litmus.io",
-  "documentationUrl": "https://github.com/litmusautomation/edge-datasource",
+  "documentationUrl": "https://docs.litmus.io/solutions/litmus-edge-data-source-for-grafana",
   "downloadingUrl": "https://portal.litmus.io/accelerators/litmus-grafana?tab=downloads",
-  "productCategory": ["Litmus Edge"],
-  "litmusEdgeVersions": ["3.x.x"],
+  "productCategory": [
+    "Litmus Edge"
+  ],
+  "litmusEdgeVersions": [
+    "3.x.x"
+  ],
   "licenseType": "Open Source",
   "userSupport": "Community",
   "verified": true,
-  "featured": false,
-  "downloads": {},
+  "featured": true,
+  "downloads": {
+    "0.2.0": [
+      {
+        "label": "Litmus Edge Datasource plugin - v 0.2.0",
+        "r2_filepath": "Solutions/litmus-grafana/litmus-edge-datasource-0.2.0.zip"
+      }
+    ]
+  },
   "logo": "1HeBckXA45MVXv0D2rPd2A",
-  "featuredImage": "4Lfyph4QX7VxOnkTwY2EXP",
-  "screenshots": ["OyisOYTUW8SrYTXbQ3hsS", "4Lfyph4QX7VxOnkTwY2EXP"],
+  "featuredImage": "OyisOYTUW8SrYTXbQ3hsS",
+  "screenshots": [
+    "4Lfyph4QX7VxOnkTwY2EXP",
+    "OyisOYTUW8SrYTXbQ3hsS"
+  ],
   "tags": [
     "1NK9r2PplWcGcEpkGMJBOd",
     "n2ZPXwMfJHE9rKFscwk8S",
@@ -24,6 +38,10 @@
     "3dIXptoYWXqrylhMFImIkd",
     "5FIUyVl3RRrOcYHH3z5BEs"
   ],
-  "relatedSolutions": ["v2uRP6W8jVIOQSQsHG0nQ", "rQprrhT77A5nuRGgLIYvF", "6pkiee4S1ScA2Sj1Kcp8SC"],
+  "relatedSolutions": [
+    "v2uRP6W8jVIOQSQsHG0nQ",
+    "rQprrhT77A5nuRGgLIYvF",
+    "4Wc7r1wW3kCxDxkZ6BDQlH"
+  ],
   "section": "LnsjCGobk7qqAgHWh8MLa"
 }
