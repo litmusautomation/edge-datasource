@@ -92,4 +92,4 @@ docker build --build-arg GRAFANA_VERSION=12.4.1 -f litmus-grafana/Dockerfile .
 
 ## Platform
 
-`linux/amd64` only.
+`linux/amd64` and `linux/arm64`. Docker selects the image that matches the host architecture.

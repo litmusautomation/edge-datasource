@@ -15,7 +15,7 @@ COPY --chown=grafana:root litmus-grafana/provisioning/ /etc/grafana/provisioning
 COPY --chown=grafana:root dist/ /var/lib/grafana/plugins/litmus-edge-datasource/
 
 USER root
-RUN chmod 0755 /var/lib/grafana/plugins/litmus-edge-datasource/gpx_edge_linux_amd64
+RUN chmod 0755 /var/lib/grafana/plugins/litmus-edge-datasource/gpx_edge_linux_*
 USER grafana
 
 # Datasource defaults — inside-LE mode uses the Docker gateway IP.

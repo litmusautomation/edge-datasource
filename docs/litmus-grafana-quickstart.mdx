@@ -22,7 +22,7 @@ To add the plugin to a Grafana instance you already run, use the **Existing Graf
 Install the plugin in your Grafana instance, then connect it to Litmus Edge. Continue with **Install the Plugin** below.
 ::::
 ::::Tab{title="litmus-grafana image"}
-The `litmus-grafana` image is Grafana with the plugin and four visualization plugins installed. The image provisions the Litmus Edge data source as the default data source, so you set connection details with environment variables instead of the Grafana UI.
+The `litmus-grafana` image is Grafana with the plugin and four visualization plugins installed. The image supports `linux/amd64` and `linux/arm64`. Docker pulls the one that matches the host. The image provisions the Litmus Edge data source as the default data source, so you set connection details with environment variables instead of the Grafana UI.
 
 To run the image inside Litmus Edge, run:
 

@@ -38,7 +38,7 @@ jobs:
         run: npm ci --no-audit --no-fund && npm run build
 
       - name: Build backend
-        run: mage build:linux && chmod 0755 dist/gpx_edge_linux_amd64
+        run: mage build:linux build:linuxARM64 && chmod 0755 dist/gpx_edge_linux_amd64 dist/gpx_edge_linux_arm64
 
       - name: Sign plugin
         env:
@@ -89,6 +89,10 @@ jobs:
           name: dist
           path: dist/
 
+      - uses: docker/setup-qemu-action@v3
+
+      - uses: docker/setup-buildx-action@v3
+
       - name: Login to ACR
         run: >
           docker login litmusedge.azurecr.io
@@ -118,16 +122,12 @@ jobs:
             TAGS="$TAGS -t ${REGISTRY}/${IMAGE_NAME}:latest"
           fi
 
-          docker build $BUILD_ARGS \
-            --platform linux/amd64 \
+          docker buildx build $BUILD_ARGS \
+            --platform linux/amd64,linux/arm64 \
             -f litmus-grafana/Dockerfile \
             $TAGS \
+            --push \
             .
-
-          docker push "${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
-          if [ "$IS_TAG" = "true" ]; then
-            docker push "${REGISTRY}/${IMAGE_NAME}:latest"
-          fi
 
   publish:
     needs: [release, docker]
