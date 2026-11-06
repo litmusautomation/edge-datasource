@@ -6,34 +6,27 @@ Stream live operational data from [Litmus Edge](https://litmus.io) directly into
 
 ## Installation
 
-Choose one of these deployment paths:
+Pick one path. Option 1 installs the plugin in a Grafana instance you already run. Option 2 starts a new Grafana container with the plugin preinstalled.
 
-### Option 1: Use the prebuilt `litmus-grafana` image
+### Option 1: Install the plugin in an existing Grafana instance
 
-Use the bundled Grafana image when you want the fastest path to a working setup:
+Requirements: Grafana v12.2 or later, Litmus Edge v3.16 or later, and shell access to the Grafana host or container.
 
-```bash
-docker run -p 3000:3000 \
-  litmusedge.azurecr.io/litmus-grafana:latest
-```
+1. Install the plugin from the latest GitHub release:
 
-The image already includes the Litmus Edge data source plugin and provisions it automatically. See [litmus-grafana/README.md](https://github.com/litmusautomation/edge-datasource/blob/main/litmus-grafana/README.md) for environment variables and external-connection setup.
+   ```bash
+   grafana cli \
+     --pluginUrl https://github.com/litmusautomation/edge-datasource/releases/latest/download/litmus-edge-datasource.zip \
+     plugins install litmus-edge-datasource
+   ```
 
-### Option 2: Install the plugin in your existing Grafana instance
+   To install without Grafana CLI, download `litmus-edge-datasource.zip` from [GitHub Releases](https://github.com/litmusautomation/edge-datasource/releases) and extract it into the Grafana plugins directory (default `/var/lib/grafana/plugins/`).
 
-Download a release zip from GitHub Releases and install the plugin with Grafana CLI or by extracting it into your Grafana plugins directory.
+2. Restart Grafana.
+3. Add the data source in the UI ([instructions](https://grafana.com/docs/grafana/latest/datasources/add-a-data-source/)), or provision it with one of the files below. Set `type` to `litmus-edge-datasource`.
+4. Click **Save & test**. The message "Connected to the Edge" confirms the setup.
 
-Example with Grafana CLI:
-
-```bash
-grafana cli \
-  --pluginUrl https://github.com/litmusautomation/edge-datasource/releases/latest/download/litmus-edge-datasource.zip \
-  plugins install litmus-edge-datasource
-```
-
-After installation, restart Grafana and add or provision a data source of type `litmus-edge-datasource`.
-
-Provisioning example for inside-LE mode:
+#### Provisioning: Grafana running inside Litmus Edge
 
 ```yaml
 apiVersion: 1
@@ -49,7 +42,7 @@ datasources:
       apiToken: ${EDGE_API_TOKEN}
 ```
 
-Provisioning example for external mode:
+#### Provisioning: Grafana connecting to an external Litmus Edge
 
 ```yaml
 apiVersion: 1
@@ -67,11 +60,27 @@ datasources:
       apiToken: ${EDGE_API_TOKEN}
 ```
 
-Note: the plugin is signed for localhost root URLs. If your Grafana instance uses a different `root_url`, either align it with one of the signed localhost URLs or explicitly allow the plugin with `GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=litmus-edge-datasource`.
+Place the file in the Grafana provisioning directory (default `/etc/grafana/provisioning/datasources/`) and restart Grafana. Set each `${...}` variable in the Grafana environment. The [Quick start](#quick-start) tables describe each value. `apiToken` is optional and enables topic discovery in the query editor.
+
+#### Plugin signature
+
+The plugin is signed for localhost root URLs. If your Grafana `root_url` is not one of them, Grafana refuses to load the plugin. Fix this in one of two ways:
+
+- Set `root_url` to one of the signed localhost URLs.
+- Allow the plugin explicitly with `GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=litmus-edge-datasource`.
+
+### Option 2: Run the prebuilt `litmus-grafana` image
+
+This image is Grafana with the plugin installed and the data source provisioned. Use it for a new, standalone setup:
+
+```bash
+docker run -p 3000:3000 \
+  litmusedge.azurecr.io/litmus-grafana:latest
+```
+
+Open `http://localhost:3000`. See [litmus-grafana/README.md](https://github.com/litmusautomation/edge-datasource/blob/main/litmus-grafana/README.md) for environment variables and external-connection setup.
 
 ## Quick start
-
-**Grafana v12.2+** and **Litmus Edge v3.16+** required.
 
 ### Running inside Litmus Edge
 
