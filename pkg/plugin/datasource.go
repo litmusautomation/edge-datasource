@@ -72,10 +72,9 @@ func getSettings(s backend.DataSourceInstanceSettings) (*edge.ConnectionOptions,
 	}
 	apiToken := secure["apiToken"]
 	address := strings.TrimSpace(config.EdgeURL)
-	// EDGE_URL opts external deployments into the new EDGE_API_TOKEN meaning.
-	legacy := !bool(opts.ExternalEdge) || (address == "" && opts.Hostname != "")
-	if legacy && apiToken == "" {
-		apiToken = secure["accessAccountApiToken"]
+	usesLegacyDiscoveryToken := !bool(opts.ExternalEdge) || (address == "" && opts.Hostname != "")
+	if usesLegacyDiscoveryToken {
+		apiToken = cmp.Or(apiToken, secure["accessAccountApiToken"])
 	}
 	if len(config.NATSProxyPort) != 0 {
 		if err := json.Unmarshal(config.NATSProxyPort, &opts.NATSProxyPort); err != nil {
@@ -98,8 +97,8 @@ func getSettings(s backend.DataSourceInstanceSettings) (*edge.ConnectionOptions,
 			}
 			opts.Hostname = u.Host
 		}
-		if !legacy && secure["accessAccountApiToken"] != "" {
-			opts.Token = secure["accessAccountApiToken"]
+		if !usesLegacyDiscoveryToken {
+			opts.Token = cmp.Or(secure["accessAccountApiToken"], opts.Token)
 		}
 		opts.Token = cmp.Or(secure["brokerToken"], opts.Token, secure["legacyBrokerToken"], secure["legacyNatsToken"])
 		if opts.Hostname == "" {
