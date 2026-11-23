@@ -197,6 +197,39 @@ func TestGetSettings_ExternalValidation(t *testing.T) {
 	}
 }
 
+func TestGetSettings_ProvisionedEnv(t *testing.T) {
+	for _, tt := range []struct {
+		name, jsonData          string
+		secure                  map[string]string
+		host, broker, discovery string
+	}{
+		{"standard URL and separate tokens", `{"externalEdge":true,"edgeUrl":"https://edge.example:8443/","hostname":"old.example"}`,
+			map[string]string{"accessAccountApiToken": "api", "brokerToken": "broker", "apiToken": "discovery"}, "edge.example:8443", "broker", "discovery"},
+		{"standard bare hostname and access-account API token", `{"externalEdge":true,"edgeUrl":"edge.example"}`,
+			map[string]string{"accessAccountApiToken": "api"}, "edge.example", "api", ""},
+		{"legacy external", `{"externalEdge":true,"hostname":"old.example"}`,
+			map[string]string{"token": "old-key", "accessAccountApiToken": "old-discovery"}, "old.example", "old-key", "old-discovery"},
+		{"legacy external with old broker alias", `{"externalEdge":true,"hostname":"old.example"}`,
+			map[string]string{"legacyBrokerToken": "broker", "legacyNatsToken": "older", "accessAccountApiToken": "old-discovery"}, "old.example", "broker", "old-discovery"},
+		{"old unprefixed broker alias", `{"externalEdge":true,"hostname":"old.example"}`,
+			map[string]string{"legacyNatsToken": "older"}, "old.example", "older", ""},
+		{"explicit discovery wins over legacy discovery", `{"externalEdge":false}`,
+			map[string]string{"apiToken": "discovery", "accessAccountApiToken": "old-discovery"}, edge.DefaultDockerGatewayIP, "", "discovery"},
+		{"legacy inside", `{"externalEdge":false}`,
+			map[string]string{"accessAccountApiToken": "old-discovery"}, edge.DefaultDockerGatewayIP, "", "old-discovery"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			opts, discovery, err := getSettings(backend.DataSourceInstanceSettings{
+				JSONData: []byte(tt.jsonData), DecryptedSecureJSONData: tt.secure,
+			})
+			require.NoError(t, err)
+			assert.Equal(t, tt.host, opts.Hostname)
+			assert.Equal(t, tt.broker, opts.Token)
+			assert.Equal(t, tt.discovery, discovery)
+		})
+	}
+}
+
 func TestGetSettings_ExternalEdgeStringBool(t *testing.T) {
 	// Grafana provisioning passes env-var defaults as strings, not bools.
 	s := backend.DataSourceInstanceSettings{

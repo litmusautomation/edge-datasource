@@ -1,9 +1,11 @@
 package plugin
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"path"
 	"strings"
 
@@ -53,20 +55,43 @@ func NewEdgeInstance(_ context.Context, s backend.DataSourceInstanceSettings) (i
 
 func getSettings(s backend.DataSourceInstanceSettings) (*edge.ConnectionOptions, string, error) {
 	opts := &edge.ConnectionOptions{}
+	config := struct {
+		*edge.ConnectionOptions
+		EdgeURL string `json:"edgeUrl"`
+	}{ConnectionOptions: opts}
 
-	if err := json.Unmarshal(s.JSONData, opts); err != nil {
+	if err := json.Unmarshal(s.JSONData, &config); err != nil {
 		log.DefaultLogger.Error("Failed to parse datasource settings JSON", "error", err)
 		return nil, "", fmt.Errorf("invalid datasource configuration — please re-enter your settings and save")
 	}
 
-	if token, ok := s.DecryptedSecureJSONData["token"]; ok {
+	secure := s.DecryptedSecureJSONData
+	if token, ok := secure["token"]; ok {
 		opts.Token = token
+	}
+	apiToken := secure["apiToken"]
+	address := strings.TrimSpace(config.EdgeURL)
+	// EDGE_URL opts external deployments into the new EDGE_API_TOKEN meaning.
+	legacy := !bool(opts.ExternalEdge) || (address == "" && opts.Hostname != "")
+	if legacy && apiToken == "" {
+		apiToken = secure["accessAccountApiToken"]
 	}
 	if strings.TrimSpace(opts.NATSProxyPort) == "" {
 		opts.NATSProxyPort = edge.DefaultNATSProxyPort
 	}
 
 	if bool(opts.ExternalEdge) {
+		if address != "" {
+			u, err := url.Parse("https://" + strings.TrimPrefix(address, "https://"))
+			if err != nil || u.Hostname() == "" || u.User != nil || (u.Path != "" && u.Path != "/") || u.RawQuery != "" || u.ForceQuery || u.Fragment != "" {
+				return nil, "", fmt.Errorf("Litmus Edge address must be a hostname or an HTTPS URL with an optional port")
+			}
+			opts.Hostname = u.Host
+		}
+		if !legacy && secure["accessAccountApiToken"] != "" {
+			opts.Token = secure["accessAccountApiToken"]
+		}
+		opts.Token = cmp.Or(secure["brokerToken"], opts.Token, secure["legacyBrokerToken"], secure["legacyNatsToken"])
 		if opts.Hostname == "" {
 			return nil, "", fmt.Errorf("Litmus Edge address is required when connecting to an external Litmus Edge")
 		}
@@ -82,8 +107,6 @@ func getSettings(s backend.DataSourceInstanceSettings) (*edge.ConnectionOptions,
 		opts.Hostname = gatewayIP
 		opts.Token = "" // no auth needed from docker0 whitelist
 	}
-
-	apiToken := s.DecryptedSecureJSONData["apiToken"]
 
 	return opts, apiToken, nil
 }
