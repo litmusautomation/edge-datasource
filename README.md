@@ -52,7 +52,7 @@ datasources:
       apiToken: $EDGE_API_TOKEN
 ```
 
-Place the file in the Grafana provisioning directory (default `/etc/grafana/provisioning/datasources/`) and restart Grafana. Set or update the provisioned values in the Grafana environment, not in the data source editor. The [image README](litmus-grafana/README.md#environment-variables) describes each value. `apiToken` is optional and enables topic discovery in the query editor.
+Place the file in the Grafana provisioning directory (default `/etc/grafana/provisioning/datasources/`) and restart Grafana. Set the variables in the Grafana environment. The [image README](litmus-grafana/README.md#environment-variables) describes each value. `apiToken` is optional and enables topic discovery in the query editor.
 
 #### Plugin signature
 

@@ -51,7 +51,7 @@ docker run -p 3000:3000 \
   litmusedge.azurecr.io/litmus-grafana:0.2.0
 ```
 
-The image provisions the default Litmus Edge data source as read-only. To change the settings, recreate the container with updated environment variables.
+The image provisions Litmus Edge as the default data source. You can edit it in Grafana.
 
 ## Environment variables
 

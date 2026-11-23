@@ -11,7 +11,7 @@ datasources:
     isDefault: true
     orgId: 1
     version: 3
-    editable: false
+    editable: true
     jsonData:
       externalEdge: ${EDGE_EXTERNAL}
       gatewayIp: ${EDGE_DOCKER_GATEWAY_IP}

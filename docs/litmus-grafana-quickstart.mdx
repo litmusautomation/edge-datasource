@@ -24,7 +24,7 @@ To add the plugin to a Grafana instance you already run, use the **Existing Graf
 Install the plugin in your Grafana instance, then connect it to Litmus Edge. Continue with **Install the Plugin** below.
 ::::
 ::::Tab{title="litmus-grafana image"}
-The `litmus-grafana` image includes the plugin and provisions the Litmus Edge data source. Docker pulls the image for your architecture from the Litmus registry. You do not need the Central plugin ZIP for this path. The provisioned data source is read-only. To change its settings, recreate the container with updated environment variables.
+The `litmus-grafana` image includes the plugin and provisions the Litmus Edge data source. Docker pulls the image for your architecture from the Litmus registry. You do not need the Central plugin ZIP for this path.
 
 To run Grafana inside Litmus Edge, run this command on the Litmus Edge host. Change the Docker gateway IP if your instance uses a different address. For topic discovery in either mode, export `EDGE_API_TOKEN` first.
 
@@ -101,7 +101,7 @@ datasources:
   - name: Litmus Edge
     type: litmus-edge-datasource
     access: proxy
-    editable: false
+    editable: true
     jsonData:
       externalEdge: false
       gatewayIp: $EDGE_DOCKER_GATEWAY_IP
@@ -130,7 +130,7 @@ datasources:
   - name: Litmus Edge
     type: litmus-edge-datasource
     access: proxy
-    editable: false
+    editable: true
     jsonData:
       externalEdge: true
       edgeUrl: $EDGE_URL
@@ -143,11 +143,11 @@ datasources:
 ::::
 :::::
 
-Save the file as `litmus-edge.yml` in `/etc/grafana/provisioning/datasources/`, or use your configured provisioning path. Set the variables in the Grafana service environment, then restart Grafana. Change provisioned settings in the environment or YAML, not in Grafana. Use a different data source name if **Litmus Edge** already exists in the same Grafana organization.
+Save the file as `litmus-edge.yml` in `/etc/grafana/provisioning/datasources/`, or use your configured provisioning path. Set the variables in the Grafana service environment, then restart Grafana. Use a different data source name if **Litmus Edge** already exists in the same Grafana organization.
 
 ### Verify Your Setup
 
-1. On the data source settings page, click **Save & test** for a manually configured data source, or **Test** for a provisioned data source. Grafana shows `Connected to the Edge`. With an API Token set, the message ends with `Topic discovery is working.` Without one, it ends with `Tip: add an API Token to enable topic discovery.`
+1. On the data source settings page, click **Save & test**. Grafana shows `Connected to the Edge`. With an API Token set, the message ends with `Topic discovery is working.` Without one, it ends with `Tip: add an API Token to enable topic discovery.`
 2. Add a panel to a dashboard and select the **Litmus Edge** data source.
 3. In the **Topic** field, enter the NATS topic of a data point that is publishing, for example `devicehub.alias.demo.bearing_temperature`. With an API Token set, you can instead search for a topic and select it.
 4. Watch the panel. Values refresh about once per second while the topic is publishing.
@@ -182,7 +182,7 @@ For either path, revoke any Access Account or API token you created only for thi
 | The panel shows old values after a reconnect                          | NATS can buffer messages while Grafana is disconnected. Refresh the dashboard to clear them.                                                                                     |
 | The Grafana logs show `Messages dropped (buffer full)`                | The topic produced more than 10,000 messages between updates. Query a more specific topic.                                                                                       |
 
-To rotate a token for a manually configured data source, enter the new value in Grafana and click **Save & test**. For a provisioned data source, update the environment variable and restart Grafana with the new value. Grafana stores tokens in secure JSON data and does not return them to the browser.
+To rotate a token set in Grafana, edit the data source, enter the new value, and click **Save & test**. If you supply the token through provisioning, update its environment variable as well. Grafana stores tokens in secure JSON data and does not return them to the browser.
 
 ## What's Next
 
