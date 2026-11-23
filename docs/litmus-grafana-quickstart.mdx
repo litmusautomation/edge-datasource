@@ -32,7 +32,7 @@ To run Grafana inside Litmus Edge, run this command on the Litmus Edge host. Cha
 docker run -d --name litmus-grafana -p 3000:3000 \
   -e EDGE_DOCKER_GATEWAY_IP=10.30.50.1 \
   -e EDGE_API_TOKEN \
-  litmusedge.azurecr.io/litmus-grafana:0.2.0
+  litmusedge.azurecr.io/litmus-grafana:0.2.1
 ```
 
 To connect to an external Litmus Edge instance, replace the example URL and run the following command. Export `EDGE_ACCESS_ACCOUNT_TOKEN` in your shell first.
@@ -44,7 +44,7 @@ docker run -d --name litmus-grafana -p 3000:3000 \
   -e EDGE_NATS_PROXY_PORT=4222 \
   -e EDGE_ACCESS_ACCOUNT_TOKEN \
   -e EDGE_API_TOKEN \
-  litmusedge.azurecr.io/litmus-grafana:0.2.0
+  litmusedge.azurecr.io/litmus-grafana:0.2.1
 ```
 
 Use a Litmus Edge address that resolves from the Grafana container. If Litmus Edge also runs in Docker and you use its container name, add `--network <edge-network>` to `docker run`, replacing `<edge-network>` with its existing Docker network. If port `3000` is taken, use a free host port, for example `-p 3001:3000 -e GF_SERVER_ROOT_URL=http://localhost:3001` in place of `-p 3000:3000` for local access.
@@ -65,11 +65,11 @@ Open Grafana on the published port (`http://localhost:3000` by default). Sign in
 
 ### Install the Plugin
 
-1. Download `litmus-edge-datasource-0.2.0.zip` from [Litmus Grafana downloads in Central](https://portal.litmus.io/accelerators/litmus-grafana?tab=downloads).
+1. Download `litmus-edge-datasource-0.2.1.zip` from [Litmus Grafana downloads in Central](https://portal.litmus.io/accelerators/litmus-grafana?tab=downloads).
 2. Copy the ZIP to the Grafana host or container and run the following command there. If you use a custom Grafana plugins directory, replace the default path.
 
    ```bash
-   unzip litmus-edge-datasource-0.2.0.zip -d /var/lib/grafana/plugins/
+   unzip litmus-edge-datasource-0.2.1.zip -d /var/lib/grafana/plugins/
    ```
 
 3. Restart Grafana. The **Litmus Edge** data source type appears when you add a data source.
@@ -160,7 +160,7 @@ For the standalone image:
 
 1. Export any dashboards you want to keep. Removing the container and its anonymous volumes deletes its Grafana data.
 2. Run `docker rm -fv litmus-grafana`.
-3. Run `docker image rm litmusedge.azurecr.io/litmus-grafana:0.2.0` if no other container uses the image.
+3. Run `docker image rm litmusedge.azurecr.io/litmus-grafana:0.2.1` if no other container uses the image.
 4. Run `docker ps -a --filter name=litmus-grafana`. The removed container no longer appears.
 
 For an existing Grafana instance:

@@ -11,7 +11,7 @@
   "releases": [
     {
       "application_id": "c79d7be8-d8ee-4390-81ff-95f2cd2576b2",
-      "name": "0.2.0",
+      "name": "0.2.1",
       "readme": "Litmus Grafana is a preconfigured Grafana image for Litmus Edge with bundled visualization plugins and the Litmus Edge Datasource preinstalled.\n\nFor full setup, usage, and troubleshooting details, see the [Litmus Grafana README](https://github.com/litmusautomation/edge-datasource/blob/main/litmus-grafana/README.md).",
       "description": "Litmus Grafana is a ready-to-use Grafana image with built-in plugins and the Litmus Edge Datasource for real-time edge stream visualization.",
       "components": [
@@ -19,8 +19,8 @@
           "id": "800",
           "name": "Grafana",
           "repository_id": "15dcadd9-3741-4e9b-919f-dc06ca57442b",
-          "image": "litmusedge.azurecr.io/litmus-grafana:0.2.0",
-          "canonicalImage": "litmusedge.azurecr.io/litmus-grafana:0.2.0",
+          "image": "litmusedge.azurecr.io/litmus-grafana:0.2.1",
+          "canonicalImage": "litmusedge.azurecr.io/litmus-grafana:0.2.1",
           "environment": {
             "EDGE_API_TOKEN": "${EDGE_API_TOKEN}",
             "EDGE_DOCKER_GATEWAY_IP": "${EDGE_DOCKER_GATEWAY_IP}",
