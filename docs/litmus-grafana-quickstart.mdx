@@ -9,11 +9,11 @@ Litmus Edge publishes device data to NATS topics. The Litmus Edge data source pl
 
 ### Before You Start
 
-- Litmus Edge v3.16 or later. This release targets Litmus Edge 4.4.x for verification.
+- Litmus Edge v3.16 or later. The tested series is 4.4.x (verified on 4.4.2).
 - For the standalone image, Docker on a Linux amd64 or arm64 host with access to `litmusedge.azurecr.io`. Use host port `3000` or another free port. To run inside Litmus Edge, run Docker on the Litmus Edge host.
 - For the plugin alone, Grafana v12.2 or later on Linux amd64 or arm64, shell access to its host or container, and permission to restart Grafana.
 - A data point publishing to NATS. Grafana must be able to reach the NATS Proxy on TCP port `4222` by default. For an external connection, enable the NATS Proxy and [create an Access Account](https://docs.litmus.io/litmusedge/product-features/system/access-control/tokens/create-api-account) with read access to the topics you plan to stream, or use a message broker token with the same permissions.
-- For topic discovery, [create a separate Litmus Edge API token](https://docs.litmus.io/litmusedge/product-features/system/access-control/tokens/create-api-token) and make sure Grafana can reach the Litmus Edge HTTPS endpoint (default TCP port `443`). The Access Account key for NATS does not authenticate topic discovery.
+- For topic discovery, [create a separate Litmus Edge API token](https://docs.litmus.io/litmusedge/product-features/system/access-control/tokens/create-api-token) and make sure Grafana can reach the Litmus Edge HTTPS endpoint (default TCP port `443`). The Access Account token for NATS does not authenticate topic discovery.
 
 ### Choose an Install Path
 
@@ -24,27 +24,26 @@ To add the plugin to a Grafana instance you already run, use the **Existing Graf
 Install the plugin in your Grafana instance, then connect it to Litmus Edge. Continue with **Install the Plugin** below.
 ::::
 ::::Tab{title="litmus-grafana image"}
-The `litmus-grafana` image includes the plugin and provisions the Litmus Edge data source. Docker pulls the image for your architecture from the Litmus registry. You do not need the Central plugin ZIP for this path.
+The `litmus-grafana` image includes the plugin and provisions the Litmus Edge data source. Docker pulls the image for your architecture from the Litmus registry. You do not need the Central plugin ZIP for this path. The provisioned data source is read-only. To change its settings, recreate the container with updated environment variables.
 
-To run Grafana inside Litmus Edge, run this command on the Litmus Edge host. Change the Docker gateway IP if your instance uses a different address. For topic discovery in either mode, export `EDGE_DEVICEHUB_API_TOKEN` first.
+To run Grafana inside Litmus Edge, run this command on the Litmus Edge host. Change the Docker gateway IP if your instance uses a different address. For topic discovery in either mode, export `EDGE_API_TOKEN` first.
 
 ```bash
 docker run -d --name litmus-grafana -p 3000:3000 \
   -e EDGE_DOCKER_GATEWAY_IP=10.30.50.1 \
-  -e EDGE_DEVICEHUB_API_TOKEN \
+  -e EDGE_API_TOKEN \
   litmusedge.azurecr.io/litmus-grafana:0.2.0
 ```
 
-To connect to an external Litmus Edge instance, replace the example URL and run the following command. Export `EDGE_API_TOKEN` or `EDGE_ACCESS_ACCOUNT_TOKEN` in your shell first.
+To connect to an external Litmus Edge instance, replace the example URL and run the following command. Export `EDGE_ACCESS_ACCOUNT_TOKEN` in your shell first.
 
 ```bash
 docker run -d --name litmus-grafana -p 3000:3000 \
   -e EDGE_EXTERNAL=true \
   -e EDGE_URL=https://litmus-edge.example:443 \
   -e EDGE_NATS_PROXY_PORT=4222 \
-  -e EDGE_API_TOKEN \
   -e EDGE_ACCESS_ACCOUNT_TOKEN \
-  -e EDGE_DEVICEHUB_API_TOKEN \
+  -e EDGE_API_TOKEN \
   litmusedge.azurecr.io/litmus-grafana:0.2.0
 ```
 
@@ -58,9 +57,8 @@ Open Grafana on the published port (`http://localhost:3000` by default). Sign in
 | `EDGE_DOCKER_GATEWAY_IP` | No | `10.30.50.1` | Docker gateway IP used inside Litmus Edge. |
 | `EDGE_URL` | External only | None | Litmus Edge HTTPS URL, hostname, or `host:port`. The port here is for the API, not NATS. |
 | `EDGE_NATS_PROXY_PORT` | No | `4222` | NATS Proxy port for live streaming. |
-| `EDGE_API_TOKEN` | If external and no broker token is set | None | Access-account API token with NATS Proxy read access. |
-| `EDGE_ACCESS_ACCOUNT_TOKEN` | If external and no API token is set | None | Message broker token. Takes precedence over the access-account API token. |
-| `EDGE_DEVICEHUB_API_TOKEN` | No | None | DeviceHub API token for topic discovery in either mode. |
+| `EDGE_ACCESS_ACCOUNT_TOKEN` | External only | None | Access Account token with NATS Proxy read access. |
+| `EDGE_API_TOKEN` | No | None | Litmus Edge API token for DeviceHub topic discovery in either mode. |
 
 ::::
 :::::
@@ -103,12 +101,12 @@ datasources:
   - name: Litmus Edge
     type: litmus-edge-datasource
     access: proxy
-    editable: true
+    editable: false
     jsonData:
       externalEdge: false
       gatewayIp: $EDGE_DOCKER_GATEWAY_IP
     secureJsonData:
-      apiToken: $EDGE_DEVICEHUB_API_TOKEN
+      apiToken: $EDGE_API_TOKEN
 ```
 
 ::::
@@ -132,25 +130,24 @@ datasources:
   - name: Litmus Edge
     type: litmus-edge-datasource
     access: proxy
-    editable: true
+    editable: false
     jsonData:
       externalEdge: true
       edgeUrl: $EDGE_URL
       natsProxyPort: $EDGE_NATS_PROXY_PORT
     secureJsonData:
-      accessAccountApiToken: $EDGE_API_TOKEN
       brokerToken: $EDGE_ACCESS_ACCOUNT_TOKEN
-      apiToken: $EDGE_DEVICEHUB_API_TOKEN
+      apiToken: $EDGE_API_TOKEN
 ```
 
 ::::
 :::::
 
-Save the file as `litmus-edge.yml` in `/etc/grafana/provisioning/datasources/`, or use your configured provisioning path. Set the variables in the Grafana service environment, then restart Grafana. Use a different data source name if **Litmus Edge** already exists in the same Grafana organization.
+Save the file as `litmus-edge.yml` in `/etc/grafana/provisioning/datasources/`, or use your configured provisioning path. Set the variables in the Grafana service environment, then restart Grafana. Change provisioned settings in the environment or YAML, not in Grafana. Use a different data source name if **Litmus Edge** already exists in the same Grafana organization.
 
 ### Verify Your Setup
 
-1. Click **Save & test** on the data source settings page. The page shows `Connected to the Edge`. With an API Token set, the message ends with `Topic discovery is working.` Without one, it ends with `Tip: add an API Token to enable topic discovery.`
+1. On the data source settings page, click **Save & test** for a manually configured data source, or **Test** for a provisioned data source. Grafana shows `Connected to the Edge`. With an API Token set, the message ends with `Topic discovery is working.` Without one, it ends with `Tip: add an API Token to enable topic discovery.`
 2. Add a panel to a dashboard and select the **Litmus Edge** data source.
 3. In the **Topic** field, enter the NATS topic of a data point that is publishing, for example `devicehub.alias.demo.bearing_temperature`. With an API Token set, you can instead search for a topic and select it.
 4. Watch the panel. Values refresh about once per second while the topic is publishing.
@@ -185,7 +182,7 @@ For either path, revoke any Access Account or API token you created only for thi
 | The panel shows old values after a reconnect                          | NATS can buffer messages while Grafana is disconnected. Refresh the dashboard to clear them.                                                                                     |
 | The Grafana logs show `Messages dropped (buffer full)`                | The topic produced more than 10,000 messages between updates. Query a more specific topic.                                                                                       |
 
-To rotate a token, edit the data source, enter the new value, and click **Save & test**. Grafana stores tokens in secure JSON data and does not return them to the browser.
+To rotate a token for a manually configured data source, enter the new value in Grafana and click **Save & test**. For a provisioned data source, update the environment variable and restart Grafana with the new value. Grafana stores tokens in secure JSON data and does not return them to the browser.
 
 ## What's Next
 

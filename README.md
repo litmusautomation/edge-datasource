@@ -31,7 +31,7 @@ datasources:
       externalEdge: false
       gatewayIp: $EDGE_DOCKER_GATEWAY_IP
     secureJsonData:
-      apiToken: $EDGE_DEVICEHUB_API_TOKEN
+      apiToken: $EDGE_API_TOKEN
 ```
 
 #### Provisioning: Grafana connecting to an external Litmus Edge
@@ -48,12 +48,11 @@ datasources:
       edgeUrl: $EDGE_URL
       natsProxyPort: $EDGE_NATS_PROXY_PORT
     secureJsonData:
-      accessAccountApiToken: $EDGE_API_TOKEN
       brokerToken: $EDGE_ACCESS_ACCOUNT_TOKEN
-      apiToken: $EDGE_DEVICEHUB_API_TOKEN
+      apiToken: $EDGE_API_TOKEN
 ```
 
-Place the file in the Grafana provisioning directory (default `/etc/grafana/provisioning/datasources/`) and restart Grafana. Set the variables in the Grafana environment. The [image README](litmus-grafana/README.md#environment-variables) describes each value. `apiToken` is optional and enables topic discovery in the query editor.
+Place the file in the Grafana provisioning directory (default `/etc/grafana/provisioning/datasources/`) and restart Grafana. Set or update the provisioned values in the Grafana environment, not in the data source editor. The [image README](litmus-grafana/README.md#environment-variables) describes each value. `apiToken` is optional and enables topic discovery in the query editor.
 
 #### Plugin signature
 
