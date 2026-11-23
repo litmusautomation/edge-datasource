@@ -1,10 +1,13 @@
 package plugin
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"path"
+	"strconv"
 	"strings"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
@@ -53,20 +56,54 @@ func NewEdgeInstance(_ context.Context, s backend.DataSourceInstanceSettings) (i
 
 func getSettings(s backend.DataSourceInstanceSettings) (*edge.ConnectionOptions, string, error) {
 	opts := &edge.ConnectionOptions{}
+	config := struct {
+		*edge.ConnectionOptions
+		EdgeURL       string          `json:"edgeUrl"`
+		NATSProxyPort json.RawMessage `json:"natsProxyPort"`
+	}{ConnectionOptions: opts}
 
-	if err := json.Unmarshal(s.JSONData, opts); err != nil {
+	if err := json.Unmarshal(s.JSONData, &config); err != nil {
 		log.DefaultLogger.Error("Failed to parse datasource settings JSON", "error", err)
 		return nil, "", fmt.Errorf("invalid datasource configuration — please re-enter your settings and save")
 	}
 
-	if token, ok := s.DecryptedSecureJSONData["token"]; ok {
+	secure := s.DecryptedSecureJSONData
+	if token, ok := secure["token"]; ok {
 		opts.Token = token
+	}
+	address := strings.TrimSpace(config.EdgeURL)
+	if len(config.NATSProxyPort) != 0 {
+		if err := json.Unmarshal(config.NATSProxyPort, &opts.NATSProxyPort); err != nil {
+			var port json.Number
+			if err := json.Unmarshal(config.NATSProxyPort, &port); err != nil {
+				return nil, "", fmt.Errorf("invalid datasource configuration — NATS Proxy Port must be a number")
+			}
+			opts.NATSProxyPort = port.String()
+		}
 	}
 	if strings.TrimSpace(opts.NATSProxyPort) == "" {
 		opts.NATSProxyPort = edge.DefaultNATSProxyPort
 	}
 
 	if bool(opts.ExternalEdge) {
+		if address != "" {
+			const scheme = "https://"
+			if len(address) >= len(scheme) && strings.EqualFold(address[:len(scheme)], scheme) {
+				address = address[len(scheme):]
+			}
+			u, err := url.Parse(scheme + address)
+			if err != nil || u.Hostname() == "" || u.User != nil || (u.Path != "" && u.Path != "/") || u.RawQuery != "" || u.ForceQuery || u.Fragment != "" {
+				return nil, "", fmt.Errorf("Litmus Edge address must be a hostname or an HTTPS URL with an optional port")
+			}
+			if u.Port() != "" || strings.HasSuffix(u.Host, ":") {
+				port, err := strconv.Atoi(u.Port())
+				if err != nil || port < 1 || port > 65535 {
+					return nil, "", fmt.Errorf("Litmus Edge address port must be a number between 1 and 65535")
+				}
+			}
+			opts.Hostname = u.Host
+		}
+		opts.Token = cmp.Or(secure["brokerToken"], opts.Token, secure["legacyBrokerToken"], secure["legacyNatsToken"])
 		if opts.Hostname == "" {
 			return nil, "", fmt.Errorf("Litmus Edge address is required when connecting to an external Litmus Edge")
 		}
@@ -83,9 +120,7 @@ func getSettings(s backend.DataSourceInstanceSettings) (*edge.ConnectionOptions,
 		opts.Token = "" // no auth needed from docker0 whitelist
 	}
 
-	apiToken := s.DecryptedSecureJSONData["apiToken"]
-
-	return opts, apiToken, nil
+	return opts, secure["apiToken"], nil
 }
 
 type EdgeDatasource struct {

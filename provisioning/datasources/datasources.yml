@@ -15,8 +15,12 @@ datasources:
     jsonData:
       externalEdge: ${EDGE_EXTERNAL}
       gatewayIp: ${EDGE_DOCKER_GATEWAY_IP}
-      hostname: ${EDGE_HOSTNAME}
-      natsProxyPort: ${EDGE_NATS_PROXY_PORT}
+      edgeUrl: $EDGE_URL
+      hostname: $EDGE_HOSTNAME
+      natsProxyPort: $EDGE_NATS_PROXY_PORT
     secureJsonData:
-      token: ${EDGE_ACCESS_ACCOUNT_API_KEY}
-      apiToken: ${EDGE_API_TOKEN}
+      token: $EDGE_ACCESS_ACCOUNT_API_KEY
+      brokerToken: $EDGE_ACCESS_ACCOUNT_TOKEN
+      legacyBrokerToken: $EDGE_NATS_TOKEN
+      legacyNatsToken: $NATS_TOKEN
+      apiToken: $EDGE_API_TOKEN

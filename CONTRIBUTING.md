@@ -19,9 +19,9 @@ npm install
 cp .env.example .env
 # For inside-LE mode (default), set EDGE_DOCKER_GATEWAY_IP if this instance
 # does not use the default gateway IP of 10.30.50.1.
-# EDGE_API_TOKEN is optional but recommended for topic discovery.
-# For external Litmus Edge: set EDGE_HOSTNAME (Litmus Edge address),
-# EDGE_ACCESS_ACCOUNT_API_KEY, and EDGE_EXTERNAL=true.
+# EDGE_API_TOKEN is optional for topic discovery.
+# For external Litmus Edge: set EDGE_EXTERNAL=true, EDGE_URL, and
+# EDGE_ACCESS_ACCOUNT_TOKEN for the broker.
 # Set EDGE_NATS_PROXY_PORT if the live stream does not use 4222.
 ```
 

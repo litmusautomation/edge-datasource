@@ -161,6 +161,13 @@ func TestGetSettings_ExternalValidation(t *testing.T) {
 			wantNATSPort: edge.DefaultNATSProxyPort,
 		},
 		{
+			name:         "external: provisioned numeric nats proxy port",
+			jsonData:     `{"externalEdge": true, "hostname": "192.168.1.1", "natsProxyPort": 6222}`,
+			token:        "valid-token",
+			wantHost:     "192.168.1.1",
+			wantNATSPort: "6222",
+		},
+		{
 			name:         "external: custom nats proxy port",
 			jsonData:     `{"externalEdge": true, "hostname": "192.168.1.1:8443", "natsProxyPort": "5222"}`,
 			token:        "valid-token",
@@ -193,6 +200,59 @@ func TestGetSettings_ExternalValidation(t *testing.T) {
 					assert.Equal(t, tt.wantNATSPort, opts.NATSProxyPort)
 				}
 			}
+		})
+	}
+}
+
+func TestGetSettings_ProvisionedEnv(t *testing.T) {
+	for _, tt := range []struct {
+		name, jsonData          string
+		secure                  map[string]string
+		host, broker, discovery string
+	}{
+		{"canonical names win", `{"externalEdge":true,"edgeUrl":"HTTPS://edge.example:8443/","hostname":"old.example"}`,
+			map[string]string{"brokerToken": "broker", "token": "old-key", "legacyBrokerToken": "old", "legacyNatsToken": "older", "apiToken": "discovery"}, "edge.example:8443", "broker", "discovery"},
+		{"old key with new bare hostname", `{"externalEdge":true,"edgeUrl":"edge.example"}`,
+			map[string]string{"token": "old-key", "legacyBrokerToken": "old", "legacyNatsToken": "older", "apiToken": "discovery"}, "edge.example", "old-key", "discovery"},
+		{"new broker token with old hostname", `{"externalEdge":true,"hostname":"old.example"}`,
+			map[string]string{"brokerToken": "broker", "apiToken": "discovery"}, "old.example", "broker", "discovery"},
+		{"prefixed NATS fallback", `{"externalEdge":true,"hostname":"old.example"}`,
+			map[string]string{"legacyBrokerToken": "old", "legacyNatsToken": "older"}, "old.example", "old", ""},
+		{"unprefixed NATS fallback", `{"externalEdge":true,"hostname":"old.example"}`,
+			map[string]string{"legacyNatsToken": "older"}, "old.example", "older", ""},
+		{"inside only uses discovery token", `{"externalEdge":false}`,
+			map[string]string{"brokerToken": "broker", "apiToken": "discovery"}, edge.DefaultDockerGatewayIP, "", "discovery"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			opts, discovery, err := getSettings(backend.DataSourceInstanceSettings{
+				JSONData: []byte(tt.jsonData), DecryptedSecureJSONData: tt.secure,
+			})
+			require.NoError(t, err)
+			assert.Equal(t, tt.host, opts.Hostname)
+			assert.Equal(t, tt.broker, opts.Token)
+			assert.Equal(t, tt.discovery, discovery)
+		})
+	}
+}
+
+func TestGetSettings_InvalidProvisionedValues(t *testing.T) {
+	for _, address := range []string{"http://edge.example", "https://edge.example/devicehub", "https://user@edge.example", "https://edge.example:65536"} {
+		t.Run(address, func(t *testing.T) {
+			data, err := json.Marshal(map[string]any{"externalEdge": true, "edgeUrl": address})
+			require.NoError(t, err)
+			_, _, err = getSettings(backend.DataSourceInstanceSettings{
+				JSONData: data, DecryptedSecureJSONData: map[string]string{"brokerToken": "broker"},
+			})
+			require.ErrorContains(t, err, "Litmus Edge address")
+		})
+	}
+	for _, port := range []string{"true", "1e3", "4222.5", "65536"} {
+		t.Run("NATS port "+port, func(t *testing.T) {
+			_, err := NewEdgeInstance(context.Background(), backend.DataSourceInstanceSettings{
+				JSONData:                []byte(`{"externalEdge":true,"edgeUrl":"edge.example","natsProxyPort":` + port + `}`),
+				DecryptedSecureJSONData: map[string]string{"brokerToken": "broker"},
+			})
+			require.ErrorContains(t, err, "NATS Proxy Port")
 		})
 	}
 }
