@@ -12,15 +12,7 @@ Pick one path. Option 1 installs the plugin in a Grafana instance you already ru
 
 Requirements: Grafana v12.2 or later, Litmus Edge v3.16 or later, and shell access to the Grafana host or container.
 
-1. Install the plugin from the latest GitHub release:
-
-   ```bash
-   grafana cli \
-     --pluginUrl https://github.com/litmusautomation/edge-datasource/releases/latest/download/litmus-edge-datasource.zip \
-     plugins install litmus-edge-datasource
-   ```
-
-   To install without Grafana CLI, download `litmus-edge-datasource.zip` from [GitHub Releases](https://github.com/litmusautomation/edge-datasource/releases) and extract it into the Grafana plugins directory (default `/var/lib/grafana/plugins/`).
+1. Download `litmus-edge-datasource-0.2.0.zip` from [Litmus Grafana downloads in Central](https://portal.litmus.io/accelerators/litmus-grafana?tab=downloads) and extract it into the Grafana plugins directory (default `/var/lib/grafana/plugins/`).
 
 2. Restart Grafana.
 3. Add the data source in the UI ([instructions](https://grafana.com/docs/grafana/latest/datasources/add-a-data-source/)), or provision it with one of the files below. Set `type` to `litmus-edge-datasource`.
@@ -37,9 +29,9 @@ datasources:
     access: proxy
     jsonData:
       externalEdge: false
-      gatewayIp: ${EDGE_DOCKER_GATEWAY_IP}
+      gatewayIp: $EDGE_DOCKER_GATEWAY_IP
     secureJsonData:
-      apiToken: ${EDGE_API_TOKEN}
+      apiToken: $EDGE_DEVICEHUB_API_TOKEN
 ```
 
 #### Provisioning: Grafana connecting to an external Litmus Edge
@@ -53,14 +45,15 @@ datasources:
     access: proxy
     jsonData:
       externalEdge: true
-      hostname: ${EDGE_HOSTNAME}
-      natsProxyPort: ${EDGE_NATS_PROXY_PORT}
+      edgeUrl: $EDGE_URL
+      natsProxyPort: $EDGE_NATS_PROXY_PORT
     secureJsonData:
-      token: ${EDGE_ACCESS_ACCOUNT_API_KEY}
-      apiToken: ${EDGE_API_TOKEN}
+      accessAccountApiToken: $EDGE_API_TOKEN
+      brokerToken: $EDGE_ACCESS_ACCOUNT_TOKEN
+      apiToken: $EDGE_DEVICEHUB_API_TOKEN
 ```
 
-Place the file in the Grafana provisioning directory (default `/etc/grafana/provisioning/datasources/`) and restart Grafana. Set each `${...}` variable in the Grafana environment. The [Quick start](#quick-start) tables describe each value. `apiToken` is optional and enables topic discovery in the query editor.
+Place the file in the Grafana provisioning directory (default `/etc/grafana/provisioning/datasources/`) and restart Grafana. Set the variables in the Grafana environment. The [image README](litmus-grafana/README.md#environment-variables) describes each value. `apiToken` is optional and enables topic discovery in the query editor.
 
 #### Plugin signature
 
@@ -75,7 +68,7 @@ This image is Grafana with the plugin installed and the data source provisioned.
 
 ```bash
 docker run -p 3000:3000 \
-  litmusedge.azurecr.io/litmus-grafana:latest
+  litmusedge.azurecr.io/litmus-grafana:0.2.0
 ```
 
 Open `http://localhost:3000`. See [litmus-grafana/README.md](https://github.com/litmusautomation/edge-datasource/blob/main/litmus-grafana/README.md) for environment variables and external-connection setup.
