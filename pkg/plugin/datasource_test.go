@@ -210,20 +210,18 @@ func TestGetSettings_ProvisionedEnv(t *testing.T) {
 		secure                  map[string]string
 		host, broker, discovery string
 	}{
-		{"standard URL and separate tokens", `{"externalEdge":true,"edgeUrl":"https://edge.example:8443/","hostname":"old.example"}`,
-			map[string]string{"accessAccountApiToken": "api", "brokerToken": "broker", "apiToken": "discovery"}, "edge.example:8443", "broker", "discovery"},
-		{"standard bare hostname and access-account API token", `{"externalEdge":true,"edgeUrl":"edge.example"}`,
-			map[string]string{"accessAccountApiToken": "api"}, "edge.example", "api", ""},
-		{"legacy external", `{"externalEdge":true,"hostname":"old.example"}`,
-			map[string]string{"token": "old-key", "accessAccountApiToken": "old-discovery"}, "old.example", "old-key", "old-discovery"},
-		{"legacy external with old broker alias", `{"externalEdge":true,"hostname":"old.example"}`,
-			map[string]string{"legacyBrokerToken": "broker", "legacyNatsToken": "older", "accessAccountApiToken": "old-discovery"}, "old.example", "broker", "old-discovery"},
-		{"old unprefixed broker alias", `{"externalEdge":true,"hostname":"old.example"}`,
+		{"canonical names win", `{"externalEdge":true,"edgeUrl":"HTTPS://edge.example:8443/","hostname":"old.example"}`,
+			map[string]string{"brokerToken": "broker", "token": "old-key", "legacyBrokerToken": "old", "legacyNatsToken": "older", "apiToken": "discovery"}, "edge.example:8443", "broker", "discovery"},
+		{"old key with new bare hostname", `{"externalEdge":true,"edgeUrl":"edge.example"}`,
+			map[string]string{"token": "old-key", "legacyBrokerToken": "old", "legacyNatsToken": "older", "apiToken": "discovery"}, "edge.example", "old-key", "discovery"},
+		{"new broker token with old hostname", `{"externalEdge":true,"hostname":"old.example"}`,
+			map[string]string{"brokerToken": "broker", "apiToken": "discovery"}, "old.example", "broker", "discovery"},
+		{"prefixed NATS fallback", `{"externalEdge":true,"hostname":"old.example"}`,
+			map[string]string{"legacyBrokerToken": "old", "legacyNatsToken": "older"}, "old.example", "old", ""},
+		{"unprefixed NATS fallback", `{"externalEdge":true,"hostname":"old.example"}`,
 			map[string]string{"legacyNatsToken": "older"}, "old.example", "older", ""},
-		{"explicit discovery wins over legacy discovery", `{"externalEdge":false}`,
-			map[string]string{"apiToken": "discovery", "accessAccountApiToken": "old-discovery"}, edge.DefaultDockerGatewayIP, "", "discovery"},
-		{"legacy inside", `{"externalEdge":false}`,
-			map[string]string{"accessAccountApiToken": "old-discovery"}, edge.DefaultDockerGatewayIP, "", "old-discovery"},
+		{"inside only uses discovery token", `{"externalEdge":false}`,
+			map[string]string{"brokerToken": "broker", "apiToken": "discovery"}, edge.DefaultDockerGatewayIP, "", "discovery"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			opts, discovery, err := getSettings(backend.DataSourceInstanceSettings{
@@ -233,6 +231,28 @@ func TestGetSettings_ProvisionedEnv(t *testing.T) {
 			assert.Equal(t, tt.host, opts.Hostname)
 			assert.Equal(t, tt.broker, opts.Token)
 			assert.Equal(t, tt.discovery, discovery)
+		})
+	}
+}
+
+func TestGetSettings_InvalidProvisionedValues(t *testing.T) {
+	for _, address := range []string{"http://edge.example", "https://edge.example/devicehub", "https://user@edge.example", "https://edge.example:65536"} {
+		t.Run(address, func(t *testing.T) {
+			data, err := json.Marshal(map[string]any{"externalEdge": true, "edgeUrl": address})
+			require.NoError(t, err)
+			_, _, err = getSettings(backend.DataSourceInstanceSettings{
+				JSONData: data, DecryptedSecureJSONData: map[string]string{"brokerToken": "broker"},
+			})
+			require.ErrorContains(t, err, "Litmus Edge address")
+		})
+	}
+	for _, port := range []string{"true", "1e3", "4222.5", "65536"} {
+		t.Run("NATS port "+port, func(t *testing.T) {
+			_, err := NewEdgeInstance(context.Background(), backend.DataSourceInstanceSettings{
+				JSONData:                []byte(`{"externalEdge":true,"edgeUrl":"edge.example","natsProxyPort":` + port + `}`),
+				DecryptedSecureJSONData: map[string]string{"brokerToken": "broker"},
+			})
+			require.ErrorContains(t, err, "NATS Proxy Port")
 		})
 	}
 }

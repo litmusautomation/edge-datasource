@@ -7,7 +7,7 @@ datasources:
     isDefault: true
     orgId: 1
     version: 1
-    editable: true
+    editable: false
     jsonData:
       externalEdge: ${EDGE_EXTERNAL}
       gatewayIp: ${EDGE_DOCKER_GATEWAY_IP}
@@ -16,8 +16,7 @@ datasources:
       natsProxyPort: $EDGE_NATS_PROXY_PORT
     secureJsonData:
       token: $EDGE_ACCESS_ACCOUNT_API_KEY
-      accessAccountApiToken: $EDGE_API_TOKEN
       brokerToken: $EDGE_ACCESS_ACCOUNT_TOKEN
       legacyBrokerToken: $EDGE_NATS_TOKEN
       legacyNatsToken: $NATS_TOKEN
-      apiToken: $EDGE_DEVICEHUB_API_TOKEN
+      apiToken: $EDGE_API_TOKEN

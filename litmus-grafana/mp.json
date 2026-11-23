@@ -22,7 +22,7 @@
           "image": "litmusedge.azurecr.io/litmus-grafana:0.2.0",
           "canonicalImage": "litmusedge.azurecr.io/litmus-grafana:0.2.0",
           "environment": {
-            "EDGE_DEVICEHUB_API_TOKEN": "${EDGE_DEVICEHUB_API_TOKEN}",
+            "EDGE_API_TOKEN": "${EDGE_API_TOKEN}",
             "EDGE_DOCKER_GATEWAY_IP": "${EDGE_DOCKER_GATEWAY_IP}",
             "EDGE_EXTERNAL": "false"
           },
@@ -64,7 +64,7 @@
           "private": false
         },
         {
-          "name": "EDGE_DEVICEHUB_API_TOKEN",
+          "name": "EDGE_API_TOKEN",
           "description": "Optional DeviceHub API token used for topic discovery in the query editor.",
           "label": "DeviceHub API Token",
           "required": false,
