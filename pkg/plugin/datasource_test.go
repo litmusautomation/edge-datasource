@@ -161,6 +161,13 @@ func TestGetSettings_ExternalValidation(t *testing.T) {
 			wantNATSPort: edge.DefaultNATSProxyPort,
 		},
 		{
+			name:         "external: provisioned numeric nats proxy port",
+			jsonData:     `{"externalEdge": true, "hostname": "192.168.1.1", "natsProxyPort": 6222}`,
+			token:        "valid-token",
+			wantHost:     "192.168.1.1",
+			wantNATSPort: "6222",
+		},
+		{
 			name:         "external: custom nats proxy port",
 			jsonData:     `{"externalEdge": true, "hostname": "192.168.1.1:8443", "natsProxyPort": "5222"}`,
 			token:        "valid-token",

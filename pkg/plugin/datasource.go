@@ -57,7 +57,8 @@ func getSettings(s backend.DataSourceInstanceSettings) (*edge.ConnectionOptions,
 	opts := &edge.ConnectionOptions{}
 	config := struct {
 		*edge.ConnectionOptions
-		EdgeURL string `json:"edgeUrl"`
+		EdgeURL       string          `json:"edgeUrl"`
+		NATSProxyPort json.RawMessage `json:"natsProxyPort"`
 	}{ConnectionOptions: opts}
 
 	if err := json.Unmarshal(s.JSONData, &config); err != nil {
@@ -75,6 +76,15 @@ func getSettings(s backend.DataSourceInstanceSettings) (*edge.ConnectionOptions,
 	legacy := !bool(opts.ExternalEdge) || (address == "" && opts.Hostname != "")
 	if legacy && apiToken == "" {
 		apiToken = secure["accessAccountApiToken"]
+	}
+	if len(config.NATSProxyPort) != 0 {
+		if err := json.Unmarshal(config.NATSProxyPort, &opts.NATSProxyPort); err != nil {
+			var port json.Number
+			if err := json.Unmarshal(config.NATSProxyPort, &port); err != nil {
+				return nil, "", fmt.Errorf("invalid datasource configuration — NATS Proxy Port must be a number")
+			}
+			opts.NATSProxyPort = port.String()
+		}
 	}
 	if strings.TrimSpace(opts.NATSProxyPort) == "" {
 		opts.NATSProxyPort = edge.DefaultNATSProxyPort
