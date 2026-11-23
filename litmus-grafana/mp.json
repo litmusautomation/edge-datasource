@@ -11,7 +11,7 @@
   "releases": [
     {
       "application_id": "c79d7be8-d8ee-4390-81ff-95f2cd2576b2",
-      "name": "latest",
+      "name": "0.2.0",
       "readme": "Litmus Grafana is a preconfigured Grafana image for Litmus Edge with bundled visualization plugins and the Litmus Edge Datasource preinstalled.\n\nFor full setup, usage, and troubleshooting details, see the [Litmus Grafana README](https://github.com/litmusautomation/edge-datasource/blob/main/litmus-grafana/README.md).",
       "description": "Litmus Grafana is a ready-to-use Grafana image with built-in plugins and the Litmus Edge Datasource for real-time edge stream visualization.",
       "components": [
@@ -19,10 +19,10 @@
           "id": "800",
           "name": "Grafana",
           "repository_id": "15dcadd9-3741-4e9b-919f-dc06ca57442b",
-          "image": "litmusedge.azurecr.io/litmus-grafana:latest",
-          "canonicalImage": "litmusedge.azurecr.io/litmus-grafana:latest",
+          "image": "litmusedge.azurecr.io/litmus-grafana:0.2.0",
+          "canonicalImage": "litmusedge.azurecr.io/litmus-grafana:0.2.0",
           "environment": {
-            "EDGE_API_TOKEN": "${EDGE_API_TOKEN}",
+            "EDGE_DEVICEHUB_API_TOKEN": "${EDGE_DEVICEHUB_API_TOKEN}",
             "EDGE_DOCKER_GATEWAY_IP": "${EDGE_DOCKER_GATEWAY_IP}",
             "EDGE_EXTERNAL": "false"
           },
@@ -64,9 +64,9 @@
           "private": false
         },
         {
-          "name": "EDGE_API_TOKEN",
-          "description": "Optional API Token used for topic discovery in the query editor.",
-          "label": "API Token",
+          "name": "EDGE_DEVICEHUB_API_TOKEN",
+          "description": "Optional DeviceHub API token used for topic discovery in the query editor.",
+          "label": "DeviceHub API Token",
           "required": false,
           "default": "",
           "type": "string",
