@@ -12,7 +12,7 @@ Pick one path. Option 1 installs the plugin in a Grafana instance you already ru
 
 Requirements: Grafana v12.2 or later, Litmus Edge v3.16 or later, and shell access to the Grafana host or container.
 
-1. Download `litmus-edge-datasource-0.2.0.zip` from [Litmus Grafana downloads in Central](https://portal.litmus.io/accelerators/litmus-grafana?tab=downloads) and extract it into the Grafana plugins directory (default `/var/lib/grafana/plugins/`).
+1. Download `litmus-edge-datasource-0.2.1.zip` from [Litmus Grafana downloads in Central](https://portal.litmus.io/accelerators/litmus-grafana?tab=downloads) and extract it into the Grafana plugins directory (default `/var/lib/grafana/plugins/`).
 
 2. Restart Grafana.
 3. Add the data source in the UI ([instructions](https://grafana.com/docs/grafana/latest/datasources/add-a-data-source/)), or provision it with one of the files below. Set `type` to `litmus-edge-datasource`.
@@ -67,7 +67,7 @@ This image is Grafana with the plugin installed and the data source provisioned.
 
 ```bash
 docker run -p 3000:3000 \
-  litmusedge.azurecr.io/litmus-grafana:0.2.0
+  litmusedge.azurecr.io/litmus-grafana:0.2.1
 ```
 
 Open `http://localhost:3000`. See [litmus-grafana/README.md](https://github.com/litmusautomation/edge-datasource/blob/main/litmus-grafana/README.md) for environment variables and external-connection setup.

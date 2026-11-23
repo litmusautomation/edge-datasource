@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.1
+
+### Configuration
+
+- New setting names; the old names still work as fallbacks. `EDGE_URL` (HTTPS URL or host) replaces `EDGE_HOSTNAME`. `EDGE_ACCESS_ACCOUNT_TOKEN` is the broker credential, falling back to `EDGE_ACCESS_ACCOUNT_API_KEY`, `EDGE_NATS_TOKEN` and `NATS_TOKEN`. `EDGE_API_TOKEN` is unchanged (topic discovery).
+- Fix provisioning when the NATS proxy port is a number.
+- Image references pinned to the release version instead of `latest`.
+
+### Security
+
+- Upgrade `golang.org/x/net` to v0.62.0 (CVE-2026-78661).
+
 ## 0.2.0
 
 ### Security
